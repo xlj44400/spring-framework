@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.http.codec.json;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -24,22 +25,25 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.AbstractEncoderTestCase;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.Pojo;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 
 import static java.util.Collections.singletonMap;
 import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
 import static org.springframework.http.MediaType.APPLICATION_STREAM_JSON;
 import static org.springframework.http.MediaType.APPLICATION_XML;
@@ -62,7 +66,6 @@ public class Jackson2JsonEncoderTests extends AbstractEncoderTestCase<Jackson2Js
 	public void canEncode() {
 		ResolvableType pojoType = ResolvableType.forClass(Pojo.class);
 		assertTrue(this.encoder.canEncode(pojoType, APPLICATION_JSON));
-		assertTrue(this.encoder.canEncode(pojoType, APPLICATION_JSON_UTF8));
 		assertTrue(this.encoder.canEncode(pojoType, APPLICATION_STREAM_JSON));
 		assertTrue(this.encoder.canEncode(pojoType, null));
 
@@ -85,8 +88,6 @@ public class Jackson2JsonEncoderTests extends AbstractEncoderTestCase<Jackson2Js
 				.consumeNextWith(expectString("{\"foo\":\"foofoofoo\",\"bar\":\"barbarbar\"}\n"))
 				.verifyComplete(),
 				APPLICATION_STREAM_JSON, null);
-
-
 	}
 
 	@Test // SPR-15866
@@ -198,6 +199,21 @@ public class Jackson2JsonEncoderTests extends AbstractEncoderTestCase<Jackson2Js
 								.andThen(DataBufferUtils::release))
 						.verifyComplete(),
 				null, hints);
+	}
+
+	@Test // gh-22771
+	public void encodeWithFlushAfterWriteOff() {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(SerializationFeature.FLUSH_AFTER_WRITE_VALUE, false);
+		Jackson2JsonEncoder encoder = new Jackson2JsonEncoder(mapper);
+
+		Flux<DataBuffer> result = encoder.encode(Flux.just(new Pojo("foo", "bar")), this.bufferFactory,
+				ResolvableType.forClass(Pojo.class), MimeTypeUtils.APPLICATION_JSON, Collections.emptyMap());
+
+		StepVerifier.create(result)
+				.consumeNextWith(expectString("[{\"foo\":\"foo\",\"bar\":\"bar\"}]"))
+				.expectComplete()
+				.verify(Duration.ofSeconds(5));
 	}
 
 

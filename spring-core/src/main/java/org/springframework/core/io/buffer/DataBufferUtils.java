@@ -57,12 +57,6 @@ public abstract class DataBufferUtils {
 
 	private static final Consumer<DataBuffer> RELEASE_CONSUMER = DataBufferUtils::release;
 
-	/**
-	 * Workaround to disable use of pooled buffers:
-	 * https://github.com/reactor/reactor-core/issues/1634.
-	 */
-	private static final DataBufferFactory defaultDataBufferFactory = new DefaultDataBufferFactory();
-
 
 	//---------------------------------------------------------------------
 	// Reading
@@ -141,14 +135,12 @@ public abstract class DataBufferUtils {
 		Assert.isTrue(position >= 0, "'position' must be >= 0");
 		Assert.isTrue(bufferSize > 0, "'bufferSize' must be > 0");
 
-		DataBufferFactory bufferFactoryToUse = defaultDataBufferFactory;
-
 		Flux<DataBuffer> flux = Flux.using(channelSupplier,
 				channel -> Flux.create(sink -> {
 					ReadCompletionHandler handler =
-							new ReadCompletionHandler(channel, sink, position, bufferFactoryToUse, bufferSize);
+							new ReadCompletionHandler(channel, sink, position, bufferFactory, bufferSize);
 					sink.onDispose(handler::dispose);
-					DataBuffer dataBuffer = bufferFactoryToUse.allocateBuffer(bufferSize);
+					DataBuffer dataBuffer = bufferFactory.allocateBuffer(bufferSize);
 					ByteBuffer byteBuffer = dataBuffer.asByteBuffer(0, bufferSize);
 					channel.read(byteBuffer, position, dataBuffer, handler);
 				}),
@@ -449,6 +441,10 @@ public abstract class DataBufferUtils {
 	public static Mono<DataBuffer> join(Publisher<DataBuffer> dataBuffers) {
 		Assert.notNull(dataBuffers, "'dataBuffers' must not be null");
 
+		if (dataBuffers instanceof Mono) {
+			return (Mono<DataBuffer>) dataBuffers;
+		}
+
 		return Flux.from(dataBuffers)
 				.collectList()
 				.filter(list -> !list.isEmpty())
@@ -532,13 +528,9 @@ public abstract class DataBufferUtils {
 				long pos = this.position.addAndGet(read);
 				dataBuffer.writePosition(read);
 				this.sink.next(dataBuffer);
-				// It's possible for cancellation to happen right before the push into the sink
+				// onNext may have led to onCancel (e.g. downstream takeUntil)
 				if (this.disposed.get()) {
-					// TODO:
-					// This is not ideal since we already passed the buffer into the sink and
-					// releasing may cause something reading to fail. Maybe we won't have to
-					// do this after https://github.com/reactor/reactor-core/issues/1634
-					complete(dataBuffer);
+					complete();
 				}
 				else {
 					DataBuffer newDataBuffer = this.dataBufferFactory.allocateBuffer(this.bufferSize);
@@ -547,12 +539,12 @@ public abstract class DataBufferUtils {
 				}
 			}
 			else {
-				complete(dataBuffer);
+				release(dataBuffer);
+				complete();
 			}
 		}
 
-		private void complete(DataBuffer dataBuffer) {
-			release(dataBuffer);
+		private void complete() {
 			this.sink.complete();
 			closeChannel(this.channel);
 		}

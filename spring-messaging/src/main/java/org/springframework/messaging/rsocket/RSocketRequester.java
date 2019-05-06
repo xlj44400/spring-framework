@@ -16,7 +16,12 @@
 
 package org.springframework.messaging.rsocket;
 
+import java.net.URI;
+import java.util.function.Consumer;
+
 import io.rsocket.RSocket;
+import io.rsocket.RSocketFactory;
+import io.rsocket.transport.ClientTransport;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -32,16 +37,53 @@ import org.springframework.util.MimeType;
  * methods specify routing and other metadata.
  *
  * @author Rossen Stoyanchev
+ * @author Brian Clozel
  * @since 5.2
  */
 public interface RSocketRequester {
-
 
 	/**
 	 * Return the underlying RSocket used to make requests.
 	 */
 	RSocket rsocket();
 
+	// For now we treat metadata as a simple string that is the route.
+	// This will change after the resolution of:
+	// https://github.com/rsocket/rsocket-java/issues/568
+
+	/**
+	 * Entry point to prepare a new request to the given route.
+	 * <p>For requestChannel interactions, i.e. Flux-to-Flux the metadata is
+	 * attached to the first request payload.
+	 * @param route the routing destination
+	 * @return a spec for further defining and executing the reuqest
+	 */
+	RequestSpec route(String route);
+
+
+	/**
+	 * Obtain a builder for an {@link RSocketRequester} by connecting to an
+	 * RSocket server. The builder allows for customization of
+	 * {@link RSocketFactory.ClientRSocketFactory ClientRSocketFactory} settings,
+	 * {@link RSocketStrategies}, and for selecting the transport to use.
+	 */
+	static RSocketRequester.Builder builder() {
+		return new DefaultRSocketRequesterBuilder();
+	}
+
+	/**
+	 * Wrap an existing {@link RSocket}. Typically used in a client or server
+	 * responder to wrap the remote {@code RSocket}.
+	 * @param rsocket the RSocket to wrap
+	 * @param dataMimeType the data MimeType, obtained from the
+	 * {@link io.rsocket.ConnectionSetupPayload} (server) or the
+	 * {@link io.rsocket.RSocketFactory.ClientRSocketFactory} (client)
+	 * @param strategies the strategies to use
+	 * @return the created RSocketRequester
+	 */
+	static RSocketRequester wrap(RSocket rsocket, @Nullable MimeType dataMimeType, RSocketStrategies strategies) {
+		return new DefaultRSocketRequester(rsocket, dataMimeType, strategies);
+	}
 
 	/**
 	 * Create a new {@code RSocketRequester} from the given {@link RSocket} and
@@ -50,26 +92,67 @@ public interface RSocketRequester {
 	 * @param dataMimeType the MimeType for data (from the SETUP frame)
 	 * @param strategies encoders, decoders, and others
 	 * @return the created RSocketRequester wrapper
+	 * @deprecated use {@link #wrap(RSocket, MimeType, RSocketStrategies)} instead
 	 */
+	@Deprecated
 	static RSocketRequester create(RSocket rsocket, @Nullable MimeType dataMimeType, RSocketStrategies strategies) {
 		return new DefaultRSocketRequester(rsocket, dataMimeType, strategies);
 	}
 
 
-	// For now we treat metadata as a simple string that is the route.
-	// This will change after the resolution of:
-	// https://github.com/rsocket/rsocket-java/issues/568
-
 	/**
-	 * Entry point to prepare a new request to the given route.
-	 *
-	 * <p>For requestChannel interactions, i.e. Flux-to-Flux the metadata is
-	 * attached to the first request payload.
-	 *
-	 * @param route the routing destination
-	 * @return a spec for further defining and executing the reuqest
+	 * Builder to prepare an {@link RSocketRequester} by connecting to an
+	 * RSocket server and wrapping the resulting {@link RSocket}.
 	 */
-	RequestSpec route(String route);
+	interface Builder {
+
+		/**
+		 * Configure the {@code ClientRSocketFactory}.
+		 * <p>Note there is typically no need to set a data MimeType explicitly.
+		 * By default a data MimeType is picked by taking the first concrete
+		 * MimeType supported by the configured encoders and decoders.
+		 * @param configurer the configurer to apply
+		 */
+		RSocketRequester.Builder rsocketFactory(Consumer<RSocketFactory.ClientRSocketFactory> configurer);
+
+		/**
+		 * Set the {@link RSocketStrategies} instance.
+		 * @param strategies the strategies to use
+		 */
+		RSocketRequester.Builder rsocketStrategies(@Nullable RSocketStrategies strategies);
+
+		/**
+		 * Customize the {@link RSocketStrategies}.
+		 * <p>By default this starts out with an empty builder, i.e.
+		 * {@link RSocketStrategies#builder()}, but the strategies can also be
+		 * set via {@link #rsocketStrategies(RSocketStrategies)}.
+		 * @param configurer the configurer to apply
+		 */
+		RSocketRequester.Builder rsocketStrategies(Consumer<RSocketStrategies.Builder> configurer);
+
+		/**
+		 * Connect to the RSocket server over TCP.
+		 * @param host the server host
+		 * @param port the server port
+		 * @return an {@code RSocketRequester} for the connection
+		 */
+		Mono<RSocketRequester> connectTcp(String host, int port);
+
+		/**
+		 * Connect to the RSocket server over WebSocket.
+		 * @param uri the RSocket server endpoint URI
+		 * @return an {@code RSocketRequester} for the connection
+		 */
+		Mono<RSocketRequester> connectWebSocket(URI uri);
+
+		/**
+		 * Connect to the RSocket server with the given {@code ClientTransport}.
+		 * @param transport the client transport to use
+		 * @return an {@code RSocketRequester} for the connection
+		 */
+		Mono<RSocketRequester> connect(ClientTransport transport);
+
+	}
 
 
 	/**

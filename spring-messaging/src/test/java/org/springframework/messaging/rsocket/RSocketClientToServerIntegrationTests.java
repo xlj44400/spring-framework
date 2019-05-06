@@ -19,10 +19,8 @@ package org.springframework.messaging.rsocket;
 import java.time.Duration;
 
 import io.netty.buffer.PooledByteBufAllocator;
-import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.frame.decoder.PayloadDecoder;
-import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import org.junit.AfterClass;
@@ -42,7 +40,6 @@ import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.MimeTypeUtils;
 
 import static org.junit.Assert.*;
 
@@ -58,8 +55,6 @@ public class RSocketClientToServerIntegrationTests {
 	private static CloseableChannel server;
 
 	private static FireAndForgetCountingInterceptor interceptor = new FireAndForgetCountingInterceptor();
-
-	private static RSocket client;
 
 	private static RSocketRequester requester;
 
@@ -77,20 +72,16 @@ public class RSocketClientToServerIntegrationTests {
 				.start()
 				.block();
 
-		client = RSocketFactory.connect()
-				.dataMimeType(MimeTypeUtils.TEXT_PLAIN_VALUE)
-				.frameDecoder(PayloadDecoder.ZERO_COPY)
-				.transport(TcpClientTransport.create("localhost", 7000))
-				.start()
+		requester = RSocketRequester.builder()
+				.rsocketFactory(factory -> factory.frameDecoder(PayloadDecoder.ZERO_COPY))
+				.rsocketStrategies(context.getBean(RSocketStrategies.class))
+				.connectTcp("localhost", 7000)
 				.block();
-
-		requester = RSocketRequester.create(
-				client, MimeTypeUtils.TEXT_PLAIN, context.getBean(RSocketStrategies.class));
 	}
 
 	@AfterClass
 	public static void tearDownOnce() {
-		client.dispose();
+		requester.rsocket().dispose();
 		server.dispose();
 	}
 

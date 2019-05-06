@@ -32,7 +32,6 @@ import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.plugins.RSocketInterceptor;
-import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import org.junit.After;
@@ -60,7 +59,6 @@ import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.ObjectUtils;
 
 import static org.junit.Assert.*;
@@ -78,8 +76,6 @@ public class RSocketBufferLeakTests {
 
 	private static CloseableChannel server;
 
-	private static RSocket client;
-
 	private static RSocketRequester requester;
 
 
@@ -96,21 +92,19 @@ public class RSocketBufferLeakTests {
 				.start()
 				.block();
 
-		client = RSocketFactory.connect()
-				.frameDecoder(PayloadDecoder.ZERO_COPY)
-				.addClientPlugin(payloadInterceptor) // intercept outgoing requests
-				.dataMimeType(MimeTypeUtils.TEXT_PLAIN_VALUE)
-				.transport(TcpClientTransport.create("localhost", 7000))
-				.start()
+		requester = RSocketRequester.builder()
+				.rsocketFactory(factory -> {
+					factory.frameDecoder(PayloadDecoder.ZERO_COPY);
+					factory.addClientPlugin(payloadInterceptor); // intercept outgoing requests
+				})
+				.rsocketStrategies(context.getBean(RSocketStrategies.class))
+				.connectTcp("localhost", 7000)
 				.block();
-
-		requester = RSocketRequester.create(
-				client, MimeTypeUtils.TEXT_PLAIN, context.getBean(RSocketStrategies.class));
 	}
 
 	@AfterClass
 	public static void tearDownOnce() {
-		client.dispose();
+		requester.rsocket().dispose();
 		server.dispose();
 	}
 
@@ -238,9 +232,10 @@ public class RSocketBufferLeakTests {
 
 
 	/**
-	 * Similar {@link org.springframework.core.io.buffer.LeakAwareDataBufferFactory}
-	 * but extends {@link NettyDataBufferFactory} rather than rely on
-	 * decoration, since {@link PayloadUtils} does instanceof checks.
+	 * Unlike {@link org.springframework.core.io.buffer.LeakAwareDataBufferFactory}
+	 * this one is an instance of {@link NettyDataBufferFactory} which is necessary
+	 * since {@link PayloadUtils} does instanceof checks, and that also allows
+	 * intercepting {@link NettyDataBufferFactory#wrap(ByteBuf)}.
 	 */
 	private static class LeakAwareNettyDataBufferFactory extends NettyDataBufferFactory {
 
@@ -277,32 +272,33 @@ public class RSocketBufferLeakTests {
 
 		@Override
 		public NettyDataBuffer allocateBuffer() {
-			return (NettyDataBuffer) record(super.allocateBuffer());
+			return (NettyDataBuffer) recordHint(super.allocateBuffer());
 		}
 
 		@Override
 		public NettyDataBuffer allocateBuffer(int initialCapacity) {
-			return (NettyDataBuffer) record(super.allocateBuffer(initialCapacity));
+			return (NettyDataBuffer) recordHint(super.allocateBuffer(initialCapacity));
 		}
 
 		@Override
 		public NettyDataBuffer wrap(ByteBuf byteBuf) {
 			NettyDataBuffer dataBuffer = super.wrap(byteBuf);
 			if (byteBuf != Unpooled.EMPTY_BUFFER) {
-				record(dataBuffer);
+				recordHint(dataBuffer);
 			}
 			return dataBuffer;
 		}
 
 		@Override
 		public DataBuffer join(List<? extends DataBuffer> dataBuffers) {
-			return record(super.join(dataBuffers));
+			return recordHint(super.join(dataBuffers));
 		}
 
-		private DataBuffer record(DataBuffer buffer) {
-			this.created.add(new DataBufferLeakInfo(buffer, new AssertionError(String.format(
+		private DataBuffer recordHint(DataBuffer buffer) {
+			AssertionError error = new AssertionError(String.format(
 					"DataBuffer leak: {%s} {%s} not released.%nStacktrace at buffer creation: ", buffer,
-					ObjectUtils.getIdentityHexString(((NettyDataBuffer) buffer).getNativeBuffer())))));
+					ObjectUtils.getIdentityHexString(((NettyDataBuffer) buffer).getNativeBuffer())));
+			this.created.add(new DataBufferLeakInfo(buffer, error));
 			return buffer;
 		}
 	}
