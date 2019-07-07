@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,19 @@
 
 package com.foo;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.List;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.core.io.ClassPathResource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 /**
  * @author Costin Leau
@@ -53,24 +55,24 @@ public class ComponentBeanDefinitionParserTests {
 	@Test
 	public void testBionicBasic() throws Exception {
 		Component cp = getBionicFamily();
-		assertThat("Bionic-1", equalTo(cp.getName()));
+		assertThat("Bionic-1").isEqualTo(cp.getName());
 	}
 
 	@Test
 	public void testBionicFirstLevelChildren() throws Exception {
 		Component cp = getBionicFamily();
 		List<Component> components = cp.getComponents();
-		assertThat(2, equalTo(components.size()));
-		assertThat("Mother-1", equalTo(components.get(0).getName()));
-		assertThat("Rock-1", equalTo(components.get(1).getName()));
+		assertThat(2).isEqualTo(components.size());
+		assertThat("Mother-1").isEqualTo(components.get(0).getName());
+		assertThat("Rock-1").isEqualTo(components.get(1).getName());
 	}
 
 	@Test
 	public void testBionicSecondLevelChildren() throws Exception {
 		Component cp = getBionicFamily();
 		List<Component> components = cp.getComponents().get(0).getComponents();
-		assertThat(2, equalTo(components.size()));
-		assertThat("Karate-1", equalTo(components.get(0).getName()));
-		assertThat("Sport-1", equalTo(components.get(1).getName()));
+		assertThat(2).isEqualTo(components.size());
+		assertThat("Karate-1").isEqualTo(components.get(0).getName());
+		assertThat("Sport-1").isEqualTo(components.get(1).getName());
 	}
 }

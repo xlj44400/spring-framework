@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import org.junit.Test;
 import org.springframework.mock.web.test.MockHttpServletRequest;
 import org.springframework.mock.web.test.MockHttpServletResponse;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link HiddenHttpMethodFilter}.
@@ -72,8 +72,7 @@ public class HiddenHttpMethodFilterTests {
 			@Override
 			public void doFilter(ServletRequest filterRequest,
 					ServletResponse filterResponse) throws IOException, ServletException {
-				assertEquals("Invalid method", expectedMethod,
-						((HttpServletRequest) filterRequest).getMethod());
+				assertThat(((HttpServletRequest) filterRequest).getMethod()).as("Invalid method").isEqualTo(expectedMethod);
 			}
 		};
 		this.filter.doFilter(request, response, filterChain);

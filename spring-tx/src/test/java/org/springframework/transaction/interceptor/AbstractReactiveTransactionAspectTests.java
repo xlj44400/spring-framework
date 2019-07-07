@@ -31,9 +31,13 @@ import org.springframework.transaction.TransactionSystemException;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.reactive.TransactionContext;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.fail;
-import static org.mockito.Mockito.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
  * Abstract support class to test {@link TransactionAspectSupport} with reactive methods.
@@ -43,18 +47,18 @@ import static org.mockito.Mockito.*;
  */
 public abstract class AbstractReactiveTransactionAspectTests {
 
-	protected Method exceptionalMethod;
-
 	protected Method getNameMethod;
 
 	protected Method setNameMethod;
 
+	protected Method exceptionalMethod;
+
 
 	@Before
 	public void setup() throws Exception {
-		exceptionalMethod = TestBean.class.getMethod("exceptional", Throwable.class);
 		getNameMethod = TestBean.class.getMethod("getName");
 		setNameMethod = TestBean.class.getMethod("setName", String.class);
+		exceptionalMethod = TestBean.class.getMethod("exceptional", Throwable.class);
 	}
 
 
@@ -91,8 +95,8 @@ public abstract class AbstractReactiveTransactionAspectTests {
 		ReactiveTransaction status = mock(ReactiveTransaction.class);
 		ReactiveTransactionManager rtm = mock(ReactiveTransactionManager.class);
 		// expect a transaction
-		when(rtm.getReactiveTransaction(txatt)).thenReturn(Mono.just(status));
-		when(rtm.commit(status)).thenReturn(Mono.empty());
+		given(rtm.getReactiveTransaction(txatt)).willReturn(Mono.just(status));
+		given(rtm.commit(status)).willReturn(Mono.empty());
 
 		DefaultTestBean tb = new DefaultTestBean();
 		TestBean itb = (TestBean) advised(tb, rtm, tas);
@@ -119,8 +123,8 @@ public abstract class AbstractReactiveTransactionAspectTests {
 		ReactiveTransaction status = mock(ReactiveTransaction.class);
 		ReactiveTransactionManager rtm = mock(ReactiveTransactionManager.class);
 		// expect a transaction
-		when(rtm.getReactiveTransaction(txatt)).thenReturn(Mono.just(status));
-		when(rtm.commit(status)).thenReturn(Mono.empty());
+		given(rtm.getReactiveTransaction(txatt)).willReturn(Mono.just(status));
+		given(rtm.commit(status)).willReturn(Mono.empty());
 
 		DefaultTestBean tb = new DefaultTestBean();
 		TestBean itb = (TestBean) advised(tb, rtm, new TransactionAttributeSource[] {tas1, tas2});
@@ -149,8 +153,8 @@ public abstract class AbstractReactiveTransactionAspectTests {
 		ReactiveTransaction status = mock(ReactiveTransaction.class);
 		ReactiveTransactionManager rtm = mock(ReactiveTransactionManager.class);
 		// expect a transaction
-		when(rtm.getReactiveTransaction(txatt)).thenReturn(Mono.just(status));
-		when(rtm.commit(status)).thenReturn(Mono.empty());
+		given(rtm.getReactiveTransaction(txatt)).willReturn(Mono.just(status));
+		given(rtm.commit(status)).willReturn(Mono.empty());
 
 		DefaultTestBean tb = new DefaultTestBean();
 		TestBean itb = (TestBean) advised(tb, rtm, tas);
@@ -229,19 +233,20 @@ public abstract class AbstractReactiveTransactionAspectTests {
 		ReactiveTransactionManager rtm = mock(ReactiveTransactionManager.class);
 		// Gets additional call(s) from TransactionControl
 
-		when(rtm.getReactiveTransaction(txatt)).thenReturn(Mono.just(status));
+		given(rtm.getReactiveTransaction(txatt)).willReturn(Mono.just(status));
 
 		TransactionSystemException tex = new TransactionSystemException("system exception");
 		if (rollbackException) {
 			if (shouldRollback) {
-				when(rtm.rollback(status)).thenReturn(Mono.error(tex));
+				given(rtm.rollback(status)).willReturn(Mono.error(tex));
 			}
 			else {
-				when(rtm.commit(status)).thenReturn(Mono.error(tex));
+				given(rtm.commit(status)).willReturn(Mono.error(tex));
 			}
-		}else{
-			when(rtm.commit(status)).thenReturn(Mono.empty());
-			when(rtm.rollback(status)).thenReturn(Mono.empty());
+		}
+		else {
+			given(rtm.commit(status)).willReturn(Mono.empty());
+			given(rtm.rollback(status)).willReturn(Mono.empty());
 		}
 
 		DefaultTestBean tb = new DefaultTestBean();
@@ -250,10 +255,10 @@ public abstract class AbstractReactiveTransactionAspectTests {
 		itb.exceptional(ex)
 				.as(StepVerifier::create)
 				.expectErrorSatisfies(actual -> {
-
 					if (rollbackException) {
 						assertThat(actual).isEqualTo(tex);
-					} else {
+					}
+					else {
 						assertThat(actual).isEqualTo(ex);
 					}
 				}).verify();
@@ -283,7 +288,7 @@ public abstract class AbstractReactiveTransactionAspectTests {
 		ReactiveTransactionManager rtm = mock(ReactiveTransactionManager.class);
 		// Expect a transaction
 		CannotCreateTransactionException ex = new CannotCreateTransactionException("foobar", null);
-		when(rtm.getReactiveTransaction(txatt)).thenThrow(ex);
+		given(rtm.getReactiveTransaction(txatt)).willThrow(ex);
 
 		DefaultTestBean tb = new DefaultTestBean() {
 			@Override
@@ -318,9 +323,10 @@ public abstract class AbstractReactiveTransactionAspectTests {
 		ReactiveTransactionManager rtm = mock(ReactiveTransactionManager.class);
 
 		ReactiveTransaction status = mock(ReactiveTransaction.class);
-		when(rtm.getReactiveTransaction(txatt)).thenReturn(Mono.just(status));
+		given(rtm.getReactiveTransaction(txatt)).willReturn(Mono.just(status));
 		UnexpectedRollbackException ex = new UnexpectedRollbackException("foobar", null);
-		when(rtm.commit(status)).thenReturn(Mono.error(ex));
+		given(rtm.commit(status)).willReturn(Mono.error(ex));
+		given(rtm.rollback(status)).willReturn(Mono.empty());
 
 		DefaultTestBean tb = new DefaultTestBean();
 		TestBean itb = (TestBean) advised(tb, rtm, tas);
@@ -329,7 +335,10 @@ public abstract class AbstractReactiveTransactionAspectTests {
 
 		Mono.from(itb.setName(name))
 				.as(StepVerifier::create)
-				.expectError(UnexpectedRollbackException.class)
+				.consumeErrorWith(throwable -> {
+					assertThat(throwable.getClass()).isEqualTo(RuntimeException.class);
+					assertThat(throwable.getCause()).isEqualTo(ex);
+				})
 				.verify();
 
 		// Should have invoked target and changed name
@@ -342,7 +351,7 @@ public abstract class AbstractReactiveTransactionAspectTests {
 
 	private void checkReactiveTransaction(boolean expected) {
 		Mono.subscriberContext().handle((context, sink) -> {
-			if (context.hasKey(TransactionContext.class) != expected){
+			if (context.hasKey(TransactionContext.class) != expected) {
 				fail("Should have thrown NoTransactionException");
 			}
 			sink.complete();
@@ -372,11 +381,11 @@ public abstract class AbstractReactiveTransactionAspectTests {
 
 	public interface TestBean {
 
-		Mono<Void> exceptional(Throwable t);
-
 		Mono<String> getName();
 
 		Publisher<Void> setName(String name);
+
+		Mono<Void> exceptional(Throwable t);
 	}
 
 
@@ -390,7 +399,7 @@ public abstract class AbstractReactiveTransactionAspectTests {
 		}
 
 		@Override
-		public Mono<Void> setName(String name) {
+		public Publisher<Void> setName(String name) {
 			return Mono.fromRunnable(() -> this.name = name);
 		}
 

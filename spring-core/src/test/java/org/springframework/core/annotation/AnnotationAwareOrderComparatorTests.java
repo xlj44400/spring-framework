@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,7 @@ import javax.annotation.Priority;
 
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Juergen Hoeller
@@ -34,7 +32,7 @@ public class AnnotationAwareOrderComparatorTests {
 
 	@Test
 	public void instanceVariableIsAnAnnotationAwareOrderComparator() {
-		assertThat(AnnotationAwareOrderComparator.INSTANCE, is(instanceOf(AnnotationAwareOrderComparator.class)));
+		assertThat(AnnotationAwareOrderComparator.INSTANCE).isInstanceOf(AnnotationAwareOrderComparator.class);
 	}
 
 	@Test
@@ -43,8 +41,8 @@ public class AnnotationAwareOrderComparatorTests {
 		list.add(new B());
 		list.add(new A());
 		AnnotationAwareOrderComparator.sort(list);
-		assertTrue(list.get(0) instanceof A);
-		assertTrue(list.get(1) instanceof B);
+		assertThat(list.get(0) instanceof A).isTrue();
+		assertThat(list.get(1) instanceof B).isTrue();
 	}
 
 	@Test
@@ -53,8 +51,8 @@ public class AnnotationAwareOrderComparatorTests {
 		list.add(new B2());
 		list.add(new A2());
 		AnnotationAwareOrderComparator.sort(list);
-		assertTrue(list.get(0) instanceof A2);
-		assertTrue(list.get(1) instanceof B2);
+		assertThat(list.get(0) instanceof A2).isTrue();
+		assertThat(list.get(1) instanceof B2).isTrue();
 	}
 
 	@Test
@@ -63,8 +61,8 @@ public class AnnotationAwareOrderComparatorTests {
 		list.add(new B());
 		list.add(new A2());
 		AnnotationAwareOrderComparator.sort(list);
-		assertTrue(list.get(0) instanceof A2);
-		assertTrue(list.get(1) instanceof B);
+		assertThat(list.get(0) instanceof A2).isTrue();
+		assertThat(list.get(1) instanceof B).isTrue();
 	}
 
 	@Test
@@ -73,8 +71,8 @@ public class AnnotationAwareOrderComparatorTests {
 		list.add(new B());
 		list.add(new C());
 		AnnotationAwareOrderComparator.sort(list);
-		assertTrue(list.get(0) instanceof C);
-		assertTrue(list.get(1) instanceof B);
+		assertThat(list.get(0) instanceof C).isTrue();
+		assertThat(list.get(1) instanceof B).isTrue();
 	}
 
 	@Test
@@ -83,8 +81,8 @@ public class AnnotationAwareOrderComparatorTests {
 		list.add(B.class);
 		list.add(A.class);
 		AnnotationAwareOrderComparator.sort(list);
-		assertEquals(A.class, list.get(0));
-		assertEquals(B.class, list.get(1));
+		assertThat(list.get(0)).isEqualTo(A.class);
+		assertThat(list.get(1)).isEqualTo(B.class);
 	}
 
 	@Test
@@ -93,8 +91,8 @@ public class AnnotationAwareOrderComparatorTests {
 		list.add(B.class);
 		list.add(C.class);
 		AnnotationAwareOrderComparator.sort(list);
-		assertEquals(C.class, list.get(0));
-		assertEquals(B.class, list.get(1));
+		assertThat(list.get(0)).isEqualTo(C.class);
+		assertThat(list.get(1)).isEqualTo(B.class);
 	}
 
 	@Test
@@ -105,10 +103,10 @@ public class AnnotationAwareOrderComparatorTests {
 		list.add(null);
 		list.add(A.class);
 		AnnotationAwareOrderComparator.sort(list);
-		assertEquals(A.class, list.get(0));
-		assertEquals(B.class, list.get(1));
-		assertNull(list.get(2));
-		assertNull(list.get(3));
+		assertThat(list.get(0)).isEqualTo(A.class);
+		assertThat(list.get(1)).isEqualTo(B.class);
+		assertThat(list.get(2)).isNull();
+		assertThat(list.get(3)).isNull();
 	}
 
 

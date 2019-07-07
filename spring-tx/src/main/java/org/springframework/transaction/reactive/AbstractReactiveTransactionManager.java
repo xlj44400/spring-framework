@@ -101,7 +101,7 @@ public abstract class AbstractReactiveTransactionManager implements ReactiveTran
 		// Use defaults if no transaction definition given.
 		TransactionDefinition def = (definition != null ? definition : TransactionDefinition.withDefaults());
 
-		return TransactionSynchronizationManager.currentTransaction()
+		return TransactionSynchronizationManager.forCurrentTransaction()
 				.flatMap(synchronizationManager -> {
 
 			Object transaction = doGetTransaction(synchronizationManager);
@@ -192,7 +192,7 @@ public abstract class AbstractReactiveTransactionManager implements ReactiveTran
 			Mono<SuspendedResourcesHolder> suspendedResources = suspend(synchronizationManager, transaction);
 			return suspendedResources.flatMap(suspendedResourcesHolder -> {
 				GenericReactiveTransaction status = newReactiveTransaction(synchronizationManager,
-						definition, transaction, true, debugEnabled, suspendedResources);
+						definition, transaction, true, debugEnabled, suspendedResourcesHolder);
 				return doBegin(synchronizationManager, transaction, definition).doOnSuccess(ignore ->
 						prepareSynchronization(synchronizationManager, status, definition)).thenReturn(status)
 						.onErrorResume(ErrorPredicates.RUNTIME_OR_ERROR, beginEx ->
@@ -322,10 +322,12 @@ public abstract class AbstractReactiveTransactionManager implements ReactiveTran
 			@Nullable Object transaction, @Nullable SuspendedResourcesHolder resourcesHolder)
 			throws TransactionException {
 
+		Mono<Void> resume = Mono.empty();
+
 		if (resourcesHolder != null) {
 			Object suspendedResources = resourcesHolder.suspendedResources;
 			if (suspendedResources != null) {
-				return doResume(synchronizationManager, transaction, suspendedResources);
+				resume =  doResume(synchronizationManager, transaction, suspendedResources);
 			}
 			List<TransactionSynchronization> suspendedSynchronizations = resourcesHolder.suspendedSynchronizations;
 			if (suspendedSynchronizations != null) {
@@ -333,11 +335,11 @@ public abstract class AbstractReactiveTransactionManager implements ReactiveTran
 				synchronizationManager.setCurrentTransactionIsolationLevel(resourcesHolder.isolationLevel);
 				synchronizationManager.setCurrentTransactionReadOnly(resourcesHolder.readOnly);
 				synchronizationManager.setCurrentTransactionName(resourcesHolder.name);
-				return doResumeSynchronization(synchronizationManager, suspendedSynchronizations);
+				return resume.then(doResumeSynchronization(synchronizationManager, suspendedSynchronizations));
 			}
 		}
 
-		return Mono.empty();
+		return resume;
 	}
 
 	/**
@@ -401,7 +403,7 @@ public abstract class AbstractReactiveTransactionManager implements ReactiveTran
 					"Transaction is already completed - do not call commit or rollback more than once per transaction"));
 		}
 
-		return TransactionSynchronizationManager.currentTransaction().flatMap(synchronizationManager -> {
+		return TransactionSynchronizationManager.forCurrentTransaction().flatMap(synchronizationManager -> {
 			GenericReactiveTransaction reactiveTx = (GenericReactiveTransaction) transaction;
 			if (reactiveTx.isRollbackOnly()) {
 				if (reactiveTx.isDebug()) {
@@ -481,7 +483,7 @@ public abstract class AbstractReactiveTransactionManager implements ReactiveTran
 			return Mono.error(new IllegalTransactionStateException(
 					"Transaction is already completed - do not call commit or rollback more than once per transaction"));
 		}
-		return TransactionSynchronizationManager.currentTransaction().flatMap(synchronizationManager -> {
+		return TransactionSynchronizationManager.forCurrentTransaction().flatMap(synchronizationManager -> {
 			GenericReactiveTransaction reactiveTx = (GenericReactiveTransaction) transaction;
 			return processRollback(synchronizationManager, reactiveTx);
 		});

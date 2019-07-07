@@ -2672,7 +2672,7 @@ Spring offers support for the Jackson JSON library.
 [.small]#<<web-reactive.adoc#webflux-ann-jsonview, Same as in Spring WebFlux>>#
 
 Spring MVC provides built-in support for
-https://wiki.fasterxml.com/JacksonJsonViews[Jackson's Serialization Views],
+https://www.baeldung.com/jackson-json-view-annotation[Jackson's Serialization Views],
 which allow rendering only a subset of all fields in an `Object`. To use it with
 `@ResponseBody` or `ResponseEntity` controller methods, you can use Jackson's
 `@JsonView` annotation to activate a serialization view class, as the following example shows:
@@ -3120,23 +3120,24 @@ necessary methods, and declare it as a Spring bean.
 Typically `@ExceptionHandler`, `@InitBinder`, and `@ModelAttribute` methods apply within
 the `@Controller` class (or class hierarchy) in which they are declared. If you want such
 methods to apply more globally (across controllers), you can declare them in a class
-marked with `@ControllerAdvice` or `@RestControllerAdvice`.
+annotated with `@ControllerAdvice` or `@RestControllerAdvice`.
 
-`@ControllerAdvice` is marked with `@Component`, which means such classes can be registered
-as Spring beans through <<core.adoc#beans-java-instantiating-container-scan, component scanning>>.
-`@RestControllerAdvice` is also a meta-annotation marked with both `@ControllerAdvice` and
-`@ResponseBody`, which essentially means `@ExceptionHandler` methods are rendered to the
-response body through message conversion (versus view resolution or template rendering).
+`@ControllerAdvice` is annotated with `@Component`, which means such classes can be
+registered as Spring beans through <<core.adoc#beans-java-instantiating-container-scan,
+component scanning>>. `@RestControllerAdvice` is a composed annotation that is annotated
+with both `@ControllerAdvice` and `@ResponseBody`, which essentially means
+`@ExceptionHandler` methods are rendered to the response body through message conversion
+(versus view resolution or template rendering).
 
-On startup, the infrastructure classes for `@RequestMapping` and `@ExceptionHandler` methods
-detect Spring beans of type `@ControllerAdvice` and then apply their methods at runtime.
-Global `@ExceptionHandler` methods (from a `@ControllerAdvice`) are applied _after_ local
-ones (from the `@Controller`). By contrast, global `@ModelAttribute` and `@InitBinder`
-methods are applied _before_ local ones.
+On startup, the infrastructure classes for `@RequestMapping` and `@ExceptionHandler`
+methods detect Spring beans annotated with `@ControllerAdvice` and then apply their
+methods at runtime. Global `@ExceptionHandler` methods (from a `@ControllerAdvice`) are
+applied _after_ local ones (from the `@Controller`). By contrast, global `@ModelAttribute`
+and `@InitBinder` methods are applied _before_ local ones.
 
-By default, `@ControllerAdvice` methods apply to every request (that is, all controllers), but
-you can narrow that down to a subset of controllers by using attributes on the annotation,
-as the following example shows:
+By default, `@ControllerAdvice` methods apply to every request (that is, all controllers),
+but you can narrow that down to a subset of controllers by using attributes on the
+annotation, as the following example shows:
 
 [source,java,indent=0]
 [subs="verbatim,quotes"]
@@ -4515,8 +4516,7 @@ The following example shows how to achieve the same configuration in XML:
 [subs="verbatim"]
 ----
 <mvc:resources mapping="/resources/**" location="/public/">
-	<mvc:resource-chain>
-		<mvc:resource-cache/>
+	<mvc:resource-chain resource-cache="true">
 		<mvc:resolvers>
 			<mvc:version-resolver>
 				<mvc:content-version-strategy patterns="/**"/>
@@ -4533,7 +4533,7 @@ bean so that it can be injected into others. You can also make the rewrite trans
 rely on `HttpServletResponse#encodeURL`.
 
 Note that, when using both `EncodedResourceResolver` (for example, for serving gzipped or
-brotli-encoded resources) and `VersionedResourceResolver`, you must register them in this order.
+brotli-encoded resources) and `VersionResourceResolver`, you must register them in this order.
 That ensures content-based versions are always computed reliably, based on the unencoded file.
 
 https://www.webjars.org/documentation[WebJars] are also supported through the

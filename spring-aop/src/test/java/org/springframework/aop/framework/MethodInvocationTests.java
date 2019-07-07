@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import org.springframework.tests.sample.beans.TestBean;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Rod Johnson
@@ -51,7 +51,7 @@ public class MethodInvocationTests {
 		m, null, null, is // list
 	);
 		Object rv = invocation.proceed();
-		assertTrue("correct response", rv == returnValue);
+		assertThat(rv == returnValue).as("correct response").isTrue();
 	}
 
 	/**

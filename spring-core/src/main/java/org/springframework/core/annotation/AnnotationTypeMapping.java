@@ -49,13 +49,15 @@ import org.springframework.util.StringUtils;
 final class AnnotationTypeMapping {
 
 	@Nullable
-	private final AnnotationTypeMapping parent;
+	private final AnnotationTypeMapping source;
 
 	private final AnnotationTypeMapping root;
 
-	private final int depth;
+	private final int distance;
 
 	private final Class<? extends Annotation> annotationType;
+
+	private final List<Class<? extends Annotation>> metaTypes;
 
 	@Nullable
 	private final Annotation annotation;
@@ -77,13 +79,16 @@ final class AnnotationTypeMapping {
 	private final Set<Method> claimedAliases = new HashSet<>();
 
 
-	AnnotationTypeMapping(@Nullable AnnotationTypeMapping parent,
+	AnnotationTypeMapping(@Nullable AnnotationTypeMapping source,
 			Class<? extends Annotation> annotationType, @Nullable Annotation annotation) {
 
-		this.parent = parent;
-		this.root = (parent != null ? parent.getRoot() : this);
-		this.depth = (parent == null ? 0 : parent.getDepth() + 1);
+		this.source = source;
+		this.root = (source != null ? source.getRoot() : this);
+		this.distance = (source == null ? 0 : source.getDistance() + 1);
 		this.annotationType = annotationType;
+		this.metaTypes = merge(
+				source != null ? source.getMetaTypes() : null,
+				annotationType);
 		this.annotation = annotation;
 		this.attributes = AttributeMethods.forAnnotationType(annotationType);
 		this.mirrorSets = new MirrorSets();
@@ -97,6 +102,16 @@ final class AnnotationTypeMapping {
 		addConventionAnnotationValues();
 	}
 
+
+	private static <T> List<T> merge(@Nullable List<T> existing, T element) {
+		if (existing == null) {
+			return Collections.singletonList(element);
+		}
+		List<T> merged = new ArrayList<>(existing.size() + 1);
+		merged.addAll(existing);
+		merged.add(element);
+		return Collections.unmodifiableList(merged);
+	}
 
 	private Map<Method, List<Method>> resolveAliasedForTargets() {
 		Map<Method, List<Method>> aliasedBy = new HashMap<>();
@@ -146,7 +161,7 @@ final class AnnotationTypeMapping {
 					StringUtils.capitalize(AttributeMethods.describe(attribute)),
 					AttributeMethods.describe(targetAnnotation, targetAttributeName)));
 		}
-		if (target == attribute) {
+		if (target.equals(attribute)) {
 			throw new AnnotationConfigurationException(String.format(
 					"@AliasFor declaration on %s points to itself. " +
 					"Specify 'annotation' to point to a same-named attribute on a meta-annotation.",
@@ -167,7 +182,7 @@ final class AnnotationTypeMapping {
 						attribute.getName()));
 			}
 			Method mirror = resolveAliasTarget(target, targetAliasFor, false);
-			if (mirror != attribute) {
+			if (!mirror.equals(attribute)) {
 				throw new AnnotationConfigurationException(String.format(
 						"%s must be declared as an @AliasFor '%s', not '%s'.",
 						StringUtils.capitalize(AttributeMethods.describe(target)),
@@ -208,7 +223,7 @@ final class AnnotationTypeMapping {
 					aliases.addAll(additional);
 				}
 			}
-			mapping = mapping.parent;
+			mapping = mapping.source;
 		}
 	}
 
@@ -235,7 +250,7 @@ final class AnnotationTypeMapping {
 					}
 				}
 			}
-			mapping = mapping.parent;
+			mapping = mapping.source;
 		}
 	}
 
@@ -250,7 +265,7 @@ final class AnnotationTypeMapping {
 	}
 
 	private void addConventionMappings() {
-		if (this.depth == 0) {
+		if (this.distance == 0) {
 			return;
 		}
 		AttributeMethods rootAttributes = this.root.getAttributes();
@@ -275,13 +290,13 @@ final class AnnotationTypeMapping {
 			Method attribute = this.attributes.get(i);
 			boolean isValueAttribute = MergedAnnotation.VALUE.equals(attribute.getName());
 			AnnotationTypeMapping mapping = this;
-			while (mapping != null && mapping.depth > 0) {
+			while (mapping != null && mapping.distance > 0) {
 				int mapped = mapping.getAttributes().indexOf(attribute.getName());
 				if (mapped != -1  && isBetterConventionAnnotationValue(i, isValueAttribute, mapping)) {
 					this.annotationValueMappings[i] = mapped;
 					this.annotationValueSource[i] = mapping;
 				}
-				mapping = mapping.parent;
+				mapping = mapping.source;
 			}
 		}
 	}
@@ -291,8 +306,8 @@ final class AnnotationTypeMapping {
 		if (this.annotationValueMappings[index] == -1) {
 			return true;
 		}
-		int existingDepth = this.annotationValueSource[index].depth;
-		return !isValueAttribute && existingDepth > mapping.depth;
+		int existingDistance = this.annotationValueSource[index].distance;
+		return !isValueAttribute && existingDistance > mapping.distance;
 	}
 
 	/**
@@ -348,20 +363,20 @@ final class AnnotationTypeMapping {
 	}
 
 	/**
-	 * Get the parent mapping or {@code null}.
-	 * @return the parent mapping
+	 * Get the source of the mapping or {@code null}.
+	 * @return the source of the mapping
 	 */
 	@Nullable
-	AnnotationTypeMapping getParent() {
-		return this.parent;
+	AnnotationTypeMapping getSource() {
+		return this.source;
 	}
 
 	/**
-	 * Get the depth of this mapping.
-	 * @return the depth of the mapping
+	 * Get the distance of this mapping.
+	 * @return the distance of the mapping
 	 */
-	int getDepth() {
-		return this.depth;
+	int getDistance() {
+		return this.distance;
 	}
 
 	/**
@@ -370,6 +385,10 @@ final class AnnotationTypeMapping {
 	 */
 	Class<? extends Annotation> getAnnotationType() {
 		return this.annotationType;
+	}
+
+	List<Class<? extends Annotation>> getMetaTypes() {
+		return this.metaTypes;
 	}
 
 	/**
@@ -628,7 +647,7 @@ final class AnnotationTypeMapping {
 							!ObjectUtils.nullSafeEquals(lastValue, value)) {
 						String on = (source != null) ? " declared on " + source : "";
 						throw new AnnotationConfigurationException(String.format(
-								"Different @AliasFor mirror values for annotation [%s]%s, attribute '%s' " +
+								"Different @AliasFor mirror values for annotation [%s]%s; attribute '%s' " +
 								"and its alias '%s' are declared with values of [%s] and [%s].",
 								getAnnotationType().getName(), on,
 								attributes.get(result).getName(),

@@ -27,7 +27,8 @@ import javax.xml.transform.URIResolver;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 /**
  * Unit tests for {@link TransformerUtils}.
@@ -42,11 +43,11 @@ public class TransformerUtilsTests {
 		Transformer transformer = new StubTransformer();
 		TransformerUtils.enableIndenting(transformer);
 		String indent = transformer.getOutputProperty(OutputKeys.INDENT);
-		assertNotNull(indent);
-		assertEquals("yes", indent);
+		assertThat(indent).isNotNull();
+		assertThat(indent).isEqualTo("yes");
 		String indentAmount = transformer.getOutputProperty("{http://xml.apache.org/xalan}indent-amount");
-		assertNotNull(indentAmount);
-		assertEquals(String.valueOf(TransformerUtils.DEFAULT_INDENT_AMOUNT), indentAmount);
+		assertThat(indentAmount).isNotNull();
+		assertThat(indentAmount).isEqualTo(String.valueOf(TransformerUtils.DEFAULT_INDENT_AMOUNT));
 	}
 
 	@Test
@@ -55,11 +56,11 @@ public class TransformerUtilsTests {
 		Transformer transformer = new StubTransformer();
 		TransformerUtils.enableIndenting(transformer, Integer.valueOf(indentAmountProperty));
 		String indent = transformer.getOutputProperty(OutputKeys.INDENT);
-		assertNotNull(indent);
-		assertEquals("yes", indent);
+		assertThat(indent).isNotNull();
+		assertThat(indent).isEqualTo("yes");
 		String indentAmount = transformer.getOutputProperty("{http://xml.apache.org/xalan}indent-amount");
-		assertNotNull(indentAmount);
-		assertEquals(indentAmountProperty, indentAmount);
+		assertThat(indentAmount).isNotNull();
+		assertThat(indentAmount).isEqualTo(indentAmountProperty);
 	}
 
 	@Test
@@ -67,23 +68,26 @@ public class TransformerUtilsTests {
 		Transformer transformer = new StubTransformer();
 		TransformerUtils.disableIndenting(transformer);
 		String indent = transformer.getOutputProperty(OutputKeys.INDENT);
-		assertNotNull(indent);
-		assertEquals("no", indent);
+		assertThat(indent).isNotNull();
+		assertThat(indent).isEqualTo("no");
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void enableIndentingWithNullTransformer() throws Exception {
-		TransformerUtils.enableIndenting(null);
+		assertThatIllegalArgumentException().isThrownBy(() ->
+				TransformerUtils.enableIndenting(null));
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void disableIndentingWithNullTransformer() throws Exception {
-		TransformerUtils.disableIndenting(null);
+		assertThatIllegalArgumentException().isThrownBy(() ->
+				TransformerUtils.disableIndenting(null));
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void enableIndentingWithNegativeIndentAmount() throws Exception {
-		TransformerUtils.enableIndenting(new StubTransformer(), -21938);
+		assertThatIllegalArgumentException().isThrownBy(() ->
+				TransformerUtils.enableIndenting(new StubTransformer(), -21938));
 	}
 
 	@Test

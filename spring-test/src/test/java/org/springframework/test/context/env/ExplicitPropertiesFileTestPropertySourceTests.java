@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests for {@link TestPropertySource @TestPropertySource}
@@ -47,8 +47,8 @@ public class ExplicitPropertiesFileTestPropertySourceTests {
 	@Test
 	public void verifyPropertiesAreAvailableInEnvironment() {
 		String userHomeKey = "user.home";
-		assertEquals(System.getProperty(userHomeKey), env.getProperty(userHomeKey));
-		assertEquals("enigma", env.getProperty("explicit"));
+		assertThat(env.getProperty(userHomeKey)).isEqualTo(System.getProperty(userHomeKey));
+		assertThat(env.getProperty("explicit")).isEqualTo("enigma");
 	}
 
 

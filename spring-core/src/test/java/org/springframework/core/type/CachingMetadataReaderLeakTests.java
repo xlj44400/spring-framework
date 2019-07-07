@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.tests.Assume;
 import org.springframework.tests.TestGroup;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 /**
  * Unit tests for checking the behaviour of {@link CachingMetadataReaderFactory} under
@@ -51,7 +51,7 @@ public class CachingMetadataReaderLeakTests {
 
 		// the biggest public class in the JDK (>60k)
 		URL url = getClass().getResource("/java/awt/Component.class");
-		assertThat(url, notNullValue());
+		assertThat(url).isNotNull();
 
 		// look at a LOT of items
 		for (int i = 0; i < ITEMS_TO_LOAD; i++) {
@@ -69,7 +69,7 @@ public class CachingMetadataReaderLeakTests {
 			};
 
 			MetadataReader reader = mrf.getMetadataReader(resource);
-			assertThat(reader, notNullValue());
+			assertThat(reader).isNotNull();
 		}
 
 		// useful for profiling to take snapshots

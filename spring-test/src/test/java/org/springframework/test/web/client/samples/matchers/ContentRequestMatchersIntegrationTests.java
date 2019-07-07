@@ -31,10 +31,10 @@ import org.springframework.test.web.Person;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
  * Examples of defining expectations on request content and content type.
@@ -78,7 +78,7 @@ public class ContentRequestMatchersIntegrationTests {
 		}
 		catch (AssertionError error) {
 			String message = error.getMessage();
-			assertTrue(message, message.startsWith("Content type expected:<application/json;charset=UTF-8>"));
+			assertThat(message.startsWith("Content type expected:<application/json;charset=UTF-8>")).as(message).isTrue();
 		}
 	}
 

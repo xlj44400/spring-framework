@@ -111,6 +111,9 @@ public abstract class RequestPredicates {
 	 */
 	public static RequestPredicate path(String pattern) {
 		Assert.notNull(pattern, "'pattern' must not be null");
+		if (!pattern.isEmpty() && !pattern.startsWith("/")) {
+			pattern = "/" + pattern;
+		}
 		return pathPredicates(DEFAULT_PATTERN_PARSER).apply(pattern);
 	}
 
@@ -1020,6 +1023,11 @@ public abstract class RequestPredicates {
 		@Override
 		public Mono<MultiValueMap<String, Part>> multipartData() {
 			return this.request.multipartData();
+		}
+
+		@Override
+		public Flux<Part> parts() {
+			return this.request.parts();
 		}
 
 		@Override

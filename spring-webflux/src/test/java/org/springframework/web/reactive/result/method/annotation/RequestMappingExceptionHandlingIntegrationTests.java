@@ -37,7 +37,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.reactive.config.EnableWebFlux;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * {@code @RequestMapping} integration tests with exception handling scenarios.
@@ -78,34 +79,26 @@ public class RequestMappingExceptionHandlingIntegrationTests extends AbstractReq
 
 	@Test  // SPR-16051
 	public void exceptionAfterSeveralItems() {
-		try {
-			performGet("/SPR-16051", new HttpHeaders(), String.class).getBody();
-			fail();
-		}
-		catch (Throwable ex) {
-			String message = ex.getMessage();
-			assertNotNull(message);
-			assertTrue("Actual: " + message, message.startsWith("Error while extracting response"));
-		}
+		assertThatExceptionOfType(Throwable.class).isThrownBy(() ->
+				performGet("/SPR-16051", new HttpHeaders(), String.class).getBody())
+			.withMessageStartingWith("Error while extracting response");
 	}
 
 	@Test  // SPR-16318
 	public void exceptionFromMethodWithProducesCondition() throws Exception {
-		try {
-			HttpHeaders headers = new HttpHeaders();
-			headers.add("Accept", "text/plain, application/problem+json");
-			performGet("/SPR-16318", headers, String.class).getBody();
-			fail();
-		}
-		catch (HttpStatusCodeException ex) {
-			assertEquals(500, ex.getRawStatusCode());
-			assertEquals("application/problem+json", ex.getResponseHeaders().getContentType().toString());
-			assertEquals("{\"reason\":\"error\"}", ex.getResponseBodyAsString());
-		}
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Accept", "text/plain, application/problem+json");
+		assertThatExceptionOfType(HttpStatusCodeException.class).isThrownBy(() ->
+				performGet("/SPR-16318", headers, String.class).getBody())
+			.satisfies(ex -> {
+				assertThat(ex.getRawStatusCode()).isEqualTo(500);
+				assertThat(ex.getResponseHeaders().getContentType().toString()).isEqualTo("application/problem+json");
+				assertThat(ex.getResponseBodyAsString()).isEqualTo("{\"reason\":\"error\"}");
+			});
 	}
 
 	private void doTest(String url, String expected) throws Exception {
-		assertEquals(expected, performGet(url, new HttpHeaders(), String.class).getBody());
+		assertThat(performGet(url, new HttpHeaders(), String.class).getBody()).isEqualTo(expected);
 	}
 
 

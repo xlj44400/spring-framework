@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,10 +23,8 @@ import org.springframework.beans.factory.config.ConstructorArgumentValues;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
-import static org.springframework.beans.factory.support.BeanDefinitionBuilder.*;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.springframework.beans.factory.support.BeanDefinitionBuilder.rootBeanDefinition;
 
 /**
  * SPR-5475 exposed the fact that the error message displayed when incorrectly
@@ -74,14 +72,9 @@ public class Spr5475Tests {
 	private void assertExceptionMessageForMisconfiguredFactoryMethod(BeanDefinition bd, String expectedMessage) {
 		DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
 		factory.registerBeanDefinition("foo", bd);
-
-		try {
-			factory.preInstantiateSingletons();
-			fail("should have failed with BeanCreationException due to incorrectly invoked factory method");
-		}
-		catch (BeanCreationException ex) {
-			assertThat(ex.getMessage(), equalTo(expectedMessage));
-		}
+		assertThatExceptionOfType(BeanCreationException.class).isThrownBy(
+				factory::preInstantiateSingletons)
+			.withMessageContaining(expectedMessage);
 	}
 
 	@Test

@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 /**
  * Tests for {@link MergedAnnotationPredicates}.
@@ -101,8 +102,8 @@ public class MergedAnnotationPredicatesTests {
 
 	@Test
 	public void firstRunOfWhenValueExtractorIsNullThrowsException() {
-		assertThatIllegalArgumentException().isThrownBy(
-				() -> MergedAnnotationPredicates.firstRunOf(null));
+		assertThatIllegalArgumentException().isThrownBy(() ->
+				MergedAnnotationPredicates.firstRunOf(null));
 	}
 
 	@Test
@@ -117,8 +118,8 @@ public class MergedAnnotationPredicatesTests {
 
 	@Test
 	public void uniqueWhenKeyExtractorIsNullThrowsException() {
-		assertThatIllegalArgumentException().isThrownBy(
-				() -> MergedAnnotationPredicates.unique(null));
+		assertThatIllegalArgumentException().isThrownBy(() ->
+				MergedAnnotationPredicates.unique(null));
 	}
 
 	private char firstCharOfValue(MergedAnnotation<TestAnnotation> annotation) {

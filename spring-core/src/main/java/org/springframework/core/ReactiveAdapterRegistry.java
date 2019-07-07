@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import io.reactivex.BackpressureStrategy;
@@ -96,11 +97,11 @@ public class ReactiveAdapterRegistry {
 		// We can fall back on "reactive-streams-flow-bridge" (once released)
 
 		// Coroutines
-		if (ClassUtils.isPresent("kotlinx.coroutines.Deferred", classLoader)) {
+		if (this.reactorPresent && ClassUtils.isPresent("kotlinx.coroutines.Deferred", classLoader)) {
 			new CoroutinesRegistrar().registerAdapters(this);
 		}
 		// TODO Use a single CoroutinesRegistrar when Flow will be not experimental anymore
-		if (ClassUtils.isPresent("kotlinx.coroutines.flow.Flow", classLoader)) {
+		if (this.reactorPresent && ClassUtils.isPresent("kotlinx.coroutines.flow.Flow", classLoader)) {
 			new CoroutinesFlowRegistrar().registerAdapters(this);
 		}
 	}
@@ -221,12 +222,8 @@ public class ReactiveAdapterRegistry {
 					source -> source);
 
 			registry.registerReactiveType(
-					ReactiveTypeDescriptor.singleOptionalValue(CompletableFuture.class, () -> {
-						CompletableFuture<?> empty = new CompletableFuture<>();
-						empty.complete(null);
-						return empty;
-					}),
-					source -> Mono.fromFuture((CompletableFuture<?>) source),
+					ReactiveTypeDescriptor.singleOptionalValue(CompletionStage.class, EmptyCompletableFuture::new),
+					source -> Mono.fromCompletionStage((CompletionStage<?>) source),
 					source -> Mono.from(source).toFuture()
 			);
 		}
@@ -338,16 +335,27 @@ public class ReactiveAdapterRegistry {
 		}
 	}
 
+
+	private static class EmptyCompletableFuture<T> extends CompletableFuture<T> {
+
+		EmptyCompletableFuture() {
+			complete(null);
+		}
+	}
+
+
 	private static class CoroutinesRegistrar {
 
 		@SuppressWarnings("KotlinInternalInJava")
 		void registerAdapters(ReactiveAdapterRegistry registry) {
 			registry.registerReactiveType(
-					ReactiveTypeDescriptor.singleOptionalValue(Deferred.class, () -> CompletableDeferredKt.CompletableDeferred(null)),
+					ReactiveTypeDescriptor.singleOptionalValue(Deferred.class,
+							() -> CompletableDeferredKt.CompletableDeferred(null)),
 					source -> CoroutinesUtils.deferredToMono((Deferred<?>) source),
 					source -> CoroutinesUtils.monoToDeferred(Mono.from(source)));
 		}
 	}
+
 
 	private static class CoroutinesFlowRegistrar {
 

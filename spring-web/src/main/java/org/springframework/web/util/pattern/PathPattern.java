@@ -175,6 +175,17 @@ public class PathPattern implements Comparable<PathPattern> {
 		return this.patternString;
 	}
 
+
+	/**
+	 * Whether the pattern string contains pattern syntax that would require
+	 * use of {@link #matches(PathContainer)}, or if it is a regular String that
+	 * could be compared directly to others.
+	 * @since 5.2
+	 */
+	public boolean hasPatternSyntax() {
+		return this.score > 0 || this.patternString.indexOf('?') != -1;
+	}
+
 	/**
 	 * Whether this pattern matches the given path.
 	 * @param pathContainer the candidate path to attempt to match against
@@ -328,7 +339,7 @@ public class PathPattern implements Comparable<PathPattern> {
 					}
 				}
 			}
-			resultPath = PathContainer.parsePath(buf.toString());
+			resultPath = PathContainer.parsePath(buf.toString(), String.valueOf(this.separator));
 		}
 		else if (startIndex >= endIndex) {
 			resultPath = PathContainer.parsePath("");
@@ -352,7 +363,7 @@ public class PathPattern implements Comparable<PathPattern> {
 	}
 
 	/**
-	 * Combine this pattern with another. Currently does not produce a new PathPattern, just produces a new string.
+	 * Combine this pattern with another.
 	 */
 	public PathPattern combine(PathPattern pattern2string) {
 		// If one of them is empty the result is the other. If both empty the result is ""
@@ -409,7 +420,7 @@ public class PathPattern implements Comparable<PathPattern> {
 		return this.parser.parse(file2 + (firstExtensionWild ? secondExtension : firstExtension));
 	}
 
-	public boolean equals(Object other) {
+	public boolean equals(@Nullable Object other) {
 		if (!(other instanceof PathPattern)) {
 			return false;
 		}

@@ -26,8 +26,8 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.tests.sample.beans.TestBean;
 
-import static org.junit.Assert.*;
-import static org.springframework.tests.TestResourceUtils.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.tests.TestResourceUtils.qualifiedResource;
 
 /**
  * @author Rob Harrop
@@ -55,10 +55,10 @@ public class CustomProblemReporterTests {
 	@Test
 	public void testErrorsAreCollated() {
 		this.reader.loadBeanDefinitions(qualifiedResource(CustomProblemReporterTests.class, "context.xml"));
-		assertEquals("Incorrect number of errors collated", 4, this.problemReporter.getErrors().length);
+		assertThat(this.problemReporter.getErrors().length).as("Incorrect number of errors collated").isEqualTo(4);
 
 		TestBean bean = (TestBean) this.beanFactory.getBean("validBean");
-		assertNotNull(bean);
+		assertThat(bean).isNotNull();
 	}
 
 

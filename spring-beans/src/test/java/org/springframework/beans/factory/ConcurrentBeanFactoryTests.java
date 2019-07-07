@@ -36,8 +36,8 @@ import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.tests.Assume;
 import org.springframework.tests.TestGroup;
 
-import static org.junit.Assert.*;
-import static org.springframework.tests.TestResourceUtils.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.tests.TestResourceUtils.qualifiedResource;
 
 /**
  * @author Guillaume Poirier
@@ -118,7 +118,7 @@ public class ConcurrentBeanFactoryTests {
 			}
 		}
 		if (ex != null) {
-			fail(ex.getMessage());
+			throw new AssertionError("Unexpected exception", ex);
 		}
 	}
 
@@ -126,8 +126,8 @@ public class ConcurrentBeanFactoryTests {
 		ConcurrentBean b1 = (ConcurrentBean) factory.getBean("bean1");
 		ConcurrentBean b2 = (ConcurrentBean) factory.getBean("bean2");
 
-		assertEquals(DATE_1, b1.getDate());
-		assertEquals(DATE_2, b2.getDate());
+		assertThat(b1.getDate()).isEqualTo(DATE_1);
+		assertThat(b2.getDate()).isEqualTo(DATE_2);
 	}
 
 

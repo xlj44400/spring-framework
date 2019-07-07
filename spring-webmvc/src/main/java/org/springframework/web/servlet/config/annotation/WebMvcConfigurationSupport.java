@@ -427,7 +427,7 @@ public class WebMvcConfigurationSupport implements ApplicationContextAware, Serv
 			map.put("smile", MediaType.valueOf("application/x-jackson-smile"));
 		}
 		if (jackson2CborPresent) {
-			map.put("cbor", MediaType.valueOf("application/cbor"));
+			map.put("cbor", MediaType.APPLICATION_CBOR);
 		}
 		return map;
 	}
@@ -831,11 +831,8 @@ public class WebMvcConfigurationSupport implements ApplicationContextAware, Serv
 	 * @param messageConverters the list to add the default message converters to
 	 */
 	protected final void addDefaultHttpMessageConverters(List<HttpMessageConverter<?>> messageConverters) {
-		StringHttpMessageConverter stringHttpMessageConverter = new StringHttpMessageConverter();
-		stringHttpMessageConverter.setWriteAcceptCharset(false);  // see SPR-7316
-
 		messageConverters.add(new ByteArrayHttpMessageConverter());
-		messageConverters.add(stringHttpMessageConverter);
+		messageConverters.add(new StringHttpMessageConverter());
 		messageConverters.add(new ResourceHttpMessageConverter());
 		messageConverters.add(new ResourceRegionHttpMessageConverter());
 		try {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,8 +39,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ReflectionUtils;
 
-import static org.junit.Assert.*;
-import static org.springframework.cache.CacheTestUtils.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.springframework.cache.CacheTestUtils.assertCacheHit;
+import static org.springframework.cache.CacheTestUtils.assertCacheMiss;
 
 /**
  * Provides various {@link CacheResolver} customisations scenario
@@ -131,24 +134,16 @@ public class CacheResolverCustomizationTests {
 	@Test
 	public void noCacheResolved() {
 		Method method = ReflectionUtils.findMethod(SimpleService.class, "noCacheResolved", Object.class);
-		try {
-			this.simpleService.noCacheResolved(new Object());
-			fail("Should have failed, no cache resolved");
-		}
-		catch (IllegalStateException ex) {
-			assertTrue("Reference to the method must be contained in the message", ex.getMessage().contains(method.toString()));
-		}
+		assertThatIllegalStateException().isThrownBy(() ->
+				this.simpleService.noCacheResolved(new Object()))
+			.withMessageContaining(method.toString());
 	}
 
 	@Test
 	public void unknownCacheResolver() {
-		try {
-			this.simpleService.unknownCacheResolver(new Object());
-			fail("Should have failed, no cache resolver with that name");
-		}
-		catch (NoSuchBeanDefinitionException ex) {
-			assertEquals("Wrong bean name in exception", "unknownCacheResolver", ex.getBeanName());
-		}
+		assertThatExceptionOfType(NoSuchBeanDefinitionException.class).isThrownBy(() ->
+				this.simpleService.unknownCacheResolver(new Object()))
+			.satisfies(ex -> assertThat(ex.getBeanName()).isEqualTo("unknownCacheResolver"));
 	}
 
 

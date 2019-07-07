@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,9 @@ import org.junit.Test;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import static org.hamcrest.Matchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * Abstract base class for integration tests for {@link ResourceDatabasePopulator}
@@ -38,6 +37,10 @@ import static org.mockito.Mockito.*;
  * @author Oliver Gierke
  */
 public abstract class AbstractDatabasePopulatorTests extends AbstractDatabaseInitializationTests {
+
+	private static final String COUNT_DAVE_SQL = "select COUNT(NAME) from T_TEST where NAME='Dave'";
+
+	private static final String COUNT_KEITH_SQL = "select COUNT(NAME) from T_TEST where NAME='Keith'";
 
 	protected final ResourceDatabasePopulator databasePopulator = new ResourceDatabasePopulator();
 
@@ -72,10 +75,8 @@ public abstract class AbstractDatabasePopulatorTests extends AbstractDatabaseIni
 		databasePopulator.addScript(defaultSchema());
 		databasePopulator.addScript(resource("db-test-data-multiple.sql"));
 		DatabasePopulatorUtils.execute(databasePopulator, db);
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Keith'", Integer.class),
-			equalTo(1));
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Dave'", Integer.class),
-			equalTo(1));
+		assertThat(jdbcTemplate.queryForObject(COUNT_KEITH_SQL, Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(COUNT_DAVE_SQL, Integer.class)).isEqualTo(1);
 	}
 
 	@Test
@@ -84,10 +85,8 @@ public abstract class AbstractDatabasePopulatorTests extends AbstractDatabaseIni
 		databasePopulator.addScript(resource("db-test-data-endings.sql"));
 		databasePopulator.setSeparator("@@");
 		DatabasePopulatorUtils.execute(databasePopulator, db);
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Keith'", Integer.class),
-			equalTo(1));
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Dave'", Integer.class),
-			equalTo(1));
+		assertThat(jdbcTemplate.queryForObject(COUNT_KEITH_SQL, Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(COUNT_DAVE_SQL, Integer.class)).isEqualTo(1);
 	}
 
 	@Test
@@ -96,10 +95,8 @@ public abstract class AbstractDatabasePopulatorTests extends AbstractDatabaseIni
 		databasePopulator.addScript(resource("db-test-data-whitespace.sql"));
 		databasePopulator.setSeparator("/\n");
 		DatabasePopulatorUtils.execute(databasePopulator, db);
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Keith'", Integer.class),
-			equalTo(1));
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Dave'", Integer.class),
-			equalTo(1));
+		assertThat(jdbcTemplate.queryForObject(COUNT_KEITH_SQL, Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(COUNT_DAVE_SQL, Integer.class)).isEqualTo(1);
 	}
 
 	@Test
@@ -107,10 +104,8 @@ public abstract class AbstractDatabasePopulatorTests extends AbstractDatabaseIni
 		databasePopulator.addScript(defaultSchema());
 		databasePopulator.addScript(resource("db-test-data-newline.sql"));
 		DatabasePopulatorUtils.execute(databasePopulator, db);
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Keith'", Integer.class),
-			equalTo(1));
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Dave'", Integer.class),
-			equalTo(1));
+		assertThat(jdbcTemplate.queryForObject(COUNT_KEITH_SQL, Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(COUNT_DAVE_SQL, Integer.class)).isEqualTo(1);
 	}
 
 	@Test
@@ -119,10 +114,8 @@ public abstract class AbstractDatabasePopulatorTests extends AbstractDatabaseIni
 		databasePopulator.addScript(resource("db-test-data-multi-newline.sql"));
 		databasePopulator.setSeparator("\n\n");
 		DatabasePopulatorUtils.execute(databasePopulator, db);
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Keith'", Integer.class),
-			equalTo(1));
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Dave'", Integer.class),
-			equalTo(1));
+		assertThat(jdbcTemplate.queryForObject(COUNT_KEITH_SQL, Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(COUNT_DAVE_SQL, Integer.class)).isEqualTo(1);
 	}
 
 	@Test
@@ -165,10 +158,8 @@ public abstract class AbstractDatabasePopulatorTests extends AbstractDatabaseIni
 		databasePopulator.addScript(defaultSchema());
 		databasePopulator.addScript(resource("db-test-data-select.sql"));
 		DatabasePopulatorUtils.execute(databasePopulator, db);
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Keith'", Integer.class),
-			equalTo(1));
-		assertThat(jdbcTemplate.queryForObject("select COUNT(NAME) from T_TEST where NAME='Dave'", Integer.class),
-			equalTo(1));
+		assertThat(jdbcTemplate.queryForObject(COUNT_KEITH_SQL, Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(COUNT_DAVE_SQL, Integer.class)).isEqualTo(1);
 	}
 
 	/**
@@ -198,7 +189,7 @@ public abstract class AbstractDatabasePopulatorTests extends AbstractDatabaseIni
 	}
 
 	private void assertTestDatabaseCreated(String name) {
-		assertEquals(name, jdbcTemplate.queryForObject("select NAME from T_TEST", String.class));
+		assertThat(jdbcTemplate.queryForObject("select NAME from T_TEST", String.class)).isEqualTo(name);
 	}
 
 }

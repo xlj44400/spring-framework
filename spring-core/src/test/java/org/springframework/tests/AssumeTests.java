@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,12 +23,13 @@ import org.junit.AssumptionViolatedException;
 import org.junit.Before;
 import org.junit.Test;
 
-import static java.util.stream.Collectors.*;
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
-import static org.springframework.tests.Assume.*;
-import static org.springframework.tests.TestGroup.*;
+import static java.util.stream.Collectors.joining;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.springframework.tests.Assume.TEST_GROUPS_SYSTEM_PROPERTY;
+import static org.springframework.tests.TestGroup.CI;
+import static org.springframework.tests.TestGroup.LONG_RUNNING;
+import static org.springframework.tests.TestGroup.PERFORMANCE;
 
 /**
  * Tests for {@link Assume}.
@@ -104,13 +105,13 @@ public class AssumeTests {
 			fail("assumption should have failed");
 		}
 		catch (IllegalStateException ex) {
-			assertThat(ex.getMessage(),
-				startsWith("Failed to parse '" + TEST_GROUPS_SYSTEM_PROPERTY + "' system property: "));
+			assertThat(ex.getMessage()).
+				startsWith("Failed to parse '" + TEST_GROUPS_SYSTEM_PROPERTY + "' system property: ");
 
-			assertThat(ex.getCause(), instanceOf(IllegalArgumentException.class));
-			assertThat(ex.getCause().getMessage(),
-				equalTo("Unable to find test group 'bogus' when parsing testGroups value: '" + testGroups
-						+ "'. Available groups include: [LONG_RUNNING,PERFORMANCE,CI]"));
+			assertThat(ex.getCause()).isInstanceOf(IllegalArgumentException.class);
+			assertThat(ex.getCause().getMessage()).
+				isEqualTo("Unable to find test group 'bogus' when parsing testGroups value: '" + testGroups
+						+ "'. Available groups include: [LONG_RUNNING,PERFORMANCE,CI]");
 		}
 	}
 

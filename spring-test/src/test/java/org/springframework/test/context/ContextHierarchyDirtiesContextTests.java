@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.HierarchyMode;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests that verify proper behavior of {@link DirtiesContext @DirtiesContext}
@@ -91,23 +89,23 @@ public class ContextHierarchyDirtiesContextTests {
 
 		JUnitCore jUnitCore = new JUnitCore();
 		Result result = jUnitCore.run(testClass);
-		assertTrue("all tests passed", result.wasSuccessful());
+		assertThat(result.wasSuccessful()).as("all tests passed").isTrue();
 
-		assertThat(ContextHierarchyDirtiesContextTests.context, notNullValue());
+		assertThat(ContextHierarchyDirtiesContextTests.context).isNotNull();
 
 		ConfigurableApplicationContext bazContext = (ConfigurableApplicationContext) ContextHierarchyDirtiesContextTests.context;
-		assertEquals("baz", ContextHierarchyDirtiesContextTests.baz);
-		assertThat("bazContext#isActive()", bazContext.isActive(), is(isBazContextActive));
+		assertThat(ContextHierarchyDirtiesContextTests.baz).isEqualTo("baz");
+		assertThat(bazContext.isActive()).isEqualTo(isBazContextActive);
 
 		ConfigurableApplicationContext barContext = (ConfigurableApplicationContext) bazContext.getParent();
-		assertThat(barContext, notNullValue());
-		assertEquals("bar", ContextHierarchyDirtiesContextTests.bar);
-		assertThat("barContext#isActive()", barContext.isActive(), is(isBarContextActive));
+		assertThat(barContext).isNotNull();
+		assertThat(ContextHierarchyDirtiesContextTests.bar).isEqualTo("bar");
+		assertThat(barContext.isActive()).isEqualTo(isBarContextActive);
 
 		ConfigurableApplicationContext fooContext = (ConfigurableApplicationContext) barContext.getParent();
-		assertThat(fooContext, notNullValue());
-		assertEquals("foo", ContextHierarchyDirtiesContextTests.foo);
-		assertThat("fooContext#isActive()", fooContext.isActive(), is(isFooContextActive));
+		assertThat(fooContext).isNotNull();
+		assertThat(ContextHierarchyDirtiesContextTests.foo).isEqualTo("foo");
+		assertThat(fooContext.isActive()).isEqualTo(isFooContextActive);
 	}
 
 

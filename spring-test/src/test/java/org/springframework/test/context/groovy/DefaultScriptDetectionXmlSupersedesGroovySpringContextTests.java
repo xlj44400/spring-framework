@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration test class that verifies proper detection of a default
@@ -42,7 +42,7 @@ public class DefaultScriptDetectionXmlSupersedesGroovySpringContextTests {
 
 	@Test
 	public final void foo() {
-		assertEquals("The foo field should have been autowired.", "Foo", this.foo);
+		assertThat(this.foo).as("The foo field should have been autowired.").isEqualTo("Foo");
 	}
 
 }

@@ -114,7 +114,7 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 	@Nullable
 	private ApplicationEventPublisher eventPublisher;
 
-	private final Stats stats = new Stats();
+	private final DefaultStats stats = new DefaultStats();
 
 
 	/**
@@ -203,9 +203,18 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 
 	/**
 	 * Return a String describing internal state and counters.
+	 * Effectively {@code toString()} on {@link #getStats() getStats()}.
 	 */
 	public String getStatsInfo() {
 		return this.stats.toString();
+	}
+
+	/**
+	 * Return a structured object with internal state and counters.
+	 * @since 5.2
+	 */
+	public Stats getStats() {
+		return this.stats;
 	}
 
 
@@ -258,9 +267,19 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 						MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 				Assert.state(headerAccessor != null, "No StompHeaderAccessor");
 
+				StompCommand command = headerAccessor.getCommand();
+				boolean isConnect = StompCommand.CONNECT.equals(command) || StompCommand.STOMP.equals(command);
+
 				headerAccessor.setSessionId(session.getId());
 				headerAccessor.setSessionAttributes(session.getAttributes());
 				headerAccessor.setUser(getUser(session));
+				if (isConnect) {
+					headerAccessor.setUserChangeCallback(user -> {
+						if (user != null && user != session.getPrincipal()) {
+							this.stompAuthentications.put(session.getId(), user);
+						}
+					});
+				}
 				headerAccessor.setHeader(SimpMessageHeaderAccessor.HEART_BEAT_HEADER, headerAccessor.getHeartbeat());
 				if (!detectImmutableMessageInterceptor(outputChannel)) {
 					headerAccessor.setImmutable();
@@ -270,8 +289,6 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 					logger.trace("From client: " + headerAccessor.getShortLogMessage(message.getPayload()));
 				}
 
-				StompCommand command = headerAccessor.getCommand();
-				boolean isConnect = StompCommand.CONNECT.equals(command) || StompCommand.STOMP.equals(command);
 				if (isConnect) {
 					this.stats.incrementConnectCount();
 				}
@@ -284,12 +301,6 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 					boolean sent = outputChannel.send(message);
 
 					if (sent) {
-						if (isConnect) {
-							Principal user = headerAccessor.getUser();
-							if (user != null && user != session.getPrincipal()) {
-								this.stompAuthentications.put(session.getId(), user);
-							}
-						}
 						if (this.eventPublisher != null) {
 							Principal user = getUser(session);
 							if (isConnect) {
@@ -329,12 +340,10 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 			sendErrorMessage(session, ex);
 			return;
 		}
-
 		Message<byte[]> message = getErrorHandler().handleClientMessageProcessingError(clientMessage, ex);
 		if (message == null) {
 			return;
 		}
-
 		StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 		Assert.state(accessor != null, "No StompHeaderAccessor");
 		sendToClient(session, accessor, message.getPayload());
@@ -356,6 +365,14 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 		catch (Throwable ex) {
 			// Could be part of normal workflow (e.g. browser tab closed)
 			logger.debug("Failed to send STOMP ERROR to client", ex);
+		}
+		finally {
+			try {
+				session.close(CloseStatus.PROTOCOL_ERROR);
+			}
+			catch (IOException ex) {
+				// Ignore
+			}
 		}
 	}
 
@@ -640,13 +657,37 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 	}
 
 
-	private static class Stats {
+	/**
+	 * Contract for access to session counters.
+	 * @since 5.2
+	 */
+	public interface Stats {
+
+		/**
+		 * The number of CONNECT frames processed.
+		 */
+		int getTotalConnect();
+
+		/**
+		 * The number of CONNECTED frames processed.
+		 */
+		int getTotalConnected();
+
+		/**
+		 * The number of DISCONNECT frames processed.
+		 */
+		int getTotalDisconnect();
+	}
+
+
+	private static class DefaultStats implements Stats {
 
 		private final AtomicInteger connect = new AtomicInteger();
 
 		private final AtomicInteger connected = new AtomicInteger();
 
 		private final AtomicInteger disconnect = new AtomicInteger();
+
 
 		public void incrementConnectCount() {
 			this.connect.incrementAndGet();
@@ -658,6 +699,21 @@ public class StompSubProtocolHandler implements SubProtocolHandler, ApplicationE
 
 		public void incrementDisconnectCount() {
 			this.disconnect.incrementAndGet();
+		}
+
+		@Override
+		public int getTotalConnect() {
+			return this.connect.get();
+		}
+
+		@Override
+		public int getTotalConnected() {
+			return this.connected.get();
+		}
+
+		@Override
+		public int getTotalDisconnect() {
+			return this.disconnect.get();
 		}
 
 		public String toString() {

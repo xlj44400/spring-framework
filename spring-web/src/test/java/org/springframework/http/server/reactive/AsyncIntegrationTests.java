@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.springframework.http.server.reactive;
 import java.net.URI;
 import java.time.Duration;
 
-import org.hamcrest.Matchers;
 import org.junit.Ignore;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -33,7 +32,8 @@ import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 /**
  * @author Stephane Maldini
@@ -58,7 +58,7 @@ public class AsyncIntegrationTests extends AbstractHttpHandlerIntegrationTests {
 		ResponseEntity<String> response = new RestTemplate().exchange(
 				RequestEntity.get(url).build(), String.class);
 
-		assertThat(response.getBody(), Matchers.equalTo("hello"));
+		assertThat(response.getBody()).isEqualTo("hello");
 	}
 
 

@@ -33,15 +33,17 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.test.context.TestContext;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willCallRealMethod;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * Unit tests for {@link EventPublishingTestExecutionListener}.
- * 
+ *
  * @author Frank Scheffler
  * @author Sam Brannen
  * @since 5.2
@@ -67,10 +69,10 @@ public class EventPublishingTestExecutionListenerTests {
 	@Before
 	public void configureMock() {
 		// Force Mockito to invoke the interface default method
-		doCallRealMethod().when(testContext).publishEvent(any());
-		when(testContext.getApplicationContext()).thenReturn(applicationContext);
+		willCallRealMethod().given(testContext).publishEvent(any());
+		given(testContext.getApplicationContext()).willReturn(applicationContext);
 		// Only allow events to be published for test methods named "publish*".
-		when(testContext.hasApplicationContext()).thenReturn(testName.getMethodName().startsWith("publish"));
+		given(testContext.hasApplicationContext()).willReturn(testName.getMethodName().startsWith("publish"));
 	}
 
 	@Test
@@ -154,8 +156,8 @@ public class EventPublishingTestExecutionListenerTests {
 
 		// Verify the type of event that was published.
 		ApplicationEvent event = eventFactory.getValue().apply(testContext);
-		assertThat(event, instanceOf(eventClass));
-		assertThat(event.getSource(), equalTo(testContext));
+		assertThat(event).isInstanceOf(eventClass);
+		assertThat(event.getSource()).isEqualTo(testContext);
 	}
 
 	private void assertNoEvent(Class<? extends TestContextEvent> eventClass, Consumer<TestContext> callback) {
@@ -171,8 +173,8 @@ public class EventPublishingTestExecutionListenerTests {
 		// In any case, we can still verify the type of event that would have
 		// been published.
 		ApplicationEvent event = eventFactory.getValue().apply(testContext);
-		assertThat(event, instanceOf(eventClass));
-		assertThat(event.getSource(), equalTo(testContext));
+		assertThat(event).isInstanceOf(eventClass);
+		assertThat(event.getSource()).isEqualTo(testContext);
 	}
 
 }

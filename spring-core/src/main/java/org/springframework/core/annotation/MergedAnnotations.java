@@ -20,6 +20,7 @@ import java.lang.annotation.Annotation;
 import java.lang.annotation.Inherited;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -34,10 +35,10 @@ import org.springframework.lang.Nullable;
  *
  * <ul>
  * <li>Explicit and Implicit {@link AliasFor @AliasFor} declarations on one or
- * more attributes within the annotation.</li>
- * <li>Explicit {@link AliasFor @AliasFor} declarations for a meta-annotation.</li>
+ * more attributes within the annotation</li>
+ * <li>Explicit {@link AliasFor @AliasFor} declarations for a meta-annotation</li>
  * <li>Convention based attribute aliases for a meta-annotation</li>
- * <li>From a meta-annotation declaration.</li>
+ * <li>From a meta-annotation declaration</li>
  * </ul>
  *
  * <p>For example, a {@code @PostMapping} annotation might be defined as follows:
@@ -115,7 +116,7 @@ import org.springframework.lang.Nullable;
  * // get all ExampleAnnotation declarations (including any meta-annotations) and
  * // print the merged "value" attributes
  * mergedAnnotations.stream(ExampleAnnotation.class).map(
- * 		a -> a.getString("value")).forEach(System.out::println);
+ * 		a -&gt; a.getString("value")).forEach(System.out::println);
  * </pre>
  *
  * @author Phillip Webb
@@ -268,7 +269,7 @@ public interface MergedAnnotations extends Iterable<MergedAnnotation<Annotation>
 	 * Stream all annotations and meta-annotations contained in this collection.
 	 * The resulting stream is ordered first by the
 	 * {@linkplain MergedAnnotation#getAggregateIndex() aggregate index} and then
-	 * by the annotation depth (with the closest annotations first). This ordering
+	 * by the annotation distance (with the closest annotations first). This ordering
 	 * means that, for most use-cases, the most suitable annotations appear
 	 * earliest in the stream.
 	 * @return a stream of annotations
@@ -366,6 +367,26 @@ public interface MergedAnnotations extends Iterable<MergedAnnotation<Annotation>
 			RepeatableContainers repeatableContainers, AnnotationFilter annotationFilter) {
 
 		return TypeMappedAnnotations.from(source, annotations, repeatableContainers, annotationFilter);
+	}
+
+	/**
+	 * Create a new {@link MergedAnnotations} instance from the specified
+	 * collection of directly present annotations. This method allows a
+	 * {@link MergedAnnotations} instance to be created from annotations that
+	 * are not necessarily loaded using reflection. The provided annotations
+	 * must all be {@link MergedAnnotation#isDirectlyPresent() directly present}
+	 * and must have a {@link MergedAnnotation#getAggregateIndex() aggregate
+	 * index} of {@code 0}.
+	 * <p>
+	 * The resulting {@link MergedAnnotations} instance will contain both the
+	 * specified annotations, and any meta-annotations that can be read using
+	 * reflection.
+	 * @param annotations the annotations to include
+	 * @return a {@link MergedAnnotations} instance containing the annotations
+	 * @see MergedAnnotation#of(ClassLoader, Object, Class, java.util.Map)
+	 */
+	static MergedAnnotations of(Collection<MergedAnnotation<?>> annotations) {
+		return MergedAnnotationsCollection.of(annotations);
 	}
 
 

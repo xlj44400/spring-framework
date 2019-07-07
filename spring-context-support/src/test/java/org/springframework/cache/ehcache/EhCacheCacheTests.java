@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import org.springframework.cache.AbstractCacheTests;
 import org.springframework.tests.Assume;
 import org.springframework.tests.TestGroup;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Costin Leau
@@ -83,10 +83,10 @@ public class EhCacheCacheTests extends AbstractCacheTests<EhCacheCache> {
 		brancusi.setTimeToLive(3);
 		nativeCache.put(brancusi);
 
-		assertEquals(value, cache.get(key).get());
+		assertThat(cache.get(key).get()).isEqualTo(value);
 		// wait for the entry to expire
 		Thread.sleep(5 * 1000);
-		assertNull(cache.get(key));
+		assertThat(cache.get(key)).isNull();
 	}
 
 }

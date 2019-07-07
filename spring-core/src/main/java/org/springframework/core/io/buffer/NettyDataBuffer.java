@@ -28,6 +28,7 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.ByteBufUtil;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -262,6 +263,12 @@ public class NettyDataBuffer implements PooledDataBuffer {
 	}
 
 	@Override
+	public NettyDataBuffer retainedSlice(int index, int length) {
+		ByteBuf slice = this.byteBuf.retainedSlice(index, length);
+		return new NettyDataBuffer(slice, this.dataBufferFactory);
+	}
+
+	@Override
 	public ByteBuffer asByteBuffer() {
 		return this.byteBuf.nioBuffer();
 	}
@@ -303,7 +310,7 @@ public class NettyDataBuffer implements PooledDataBuffer {
 
 
 	@Override
-	public boolean equals(Object other) {
+	public boolean equals(@Nullable Object other) {
 		return (this == other || (other instanceof NettyDataBuffer &&
 				this.byteBuf.equals(((NettyDataBuffer) other).byteBuf)));
 	}

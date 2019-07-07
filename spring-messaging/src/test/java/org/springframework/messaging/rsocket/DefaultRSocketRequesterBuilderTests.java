@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,7 @@
 
 package org.springframework.messaging.rsocket;
 
+import java.lang.reflect.Field;
 import java.util.function.Consumer;
 
 import io.netty.buffer.ByteBuf;
@@ -28,8 +29,19 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.springframework.core.codec.CharSequenceEncoder;
+import org.springframework.core.codec.StringDecoder;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
+import org.springframework.util.ReflectionUtils;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
  * Unit tests for {@link DefaultRSocketRequesterBuilder}.
@@ -44,11 +56,12 @@ public class DefaultRSocketRequesterBuilderTests {
 	@Before
 	public void setup() {
 		this.transport = mock(ClientTransport.class);
-		when(this.transport.connect(anyInt())).thenReturn(Mono.just(new MockConnection()));
+		given(this.transport.connect(anyInt())).willReturn(Mono.just(new MockConnection()));
 	}
 
-	@SuppressWarnings("unchecked")
+
 	@Test
+	@SuppressWarnings("unchecked")
 	public void shouldApplyCustomizationsAtSubscription() {
 		Consumer<RSocketFactory.ClientRSocketFactory> factoryConfigurer = mock(Consumer.class);
 		Consumer<RSocketStrategies.Builder> strategiesConfigurer = mock(Consumer.class);
@@ -59,12 +72,17 @@ public class DefaultRSocketRequesterBuilderTests {
 		verifyZeroInteractions(this.transport, factoryConfigurer, strategiesConfigurer);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
+	@SuppressWarnings("unchecked")
 	public void shouldApplyCustomizations() {
+		RSocketStrategies strategies = RSocketStrategies.builder()
+				.encoder(CharSequenceEncoder.allMimeTypes())
+				.decoder(StringDecoder.allMimeTypes())
+				.build();
 		Consumer<RSocketFactory.ClientRSocketFactory> factoryConfigurer = mock(Consumer.class);
 		Consumer<RSocketStrategies.Builder> strategiesConfigurer = mock(Consumer.class);
 		RSocketRequester.builder()
+				.rsocketStrategies(strategies)
 				.rsocketFactory(factoryConfigurer)
 				.rsocketStrategies(strategiesConfigurer)
 				.connect(this.transport)
@@ -73,6 +91,26 @@ public class DefaultRSocketRequesterBuilderTests {
 		verify(factoryConfigurer).accept(any(RSocketFactory.ClientRSocketFactory.class));
 		verify(strategiesConfigurer).accept(any(RSocketStrategies.Builder.class));
 	}
+
+	@Test
+	public void dataMimeType() throws NoSuchFieldException {
+		RSocketStrategies strategies = RSocketStrategies.builder()
+				.encoder(CharSequenceEncoder.allMimeTypes())
+				.decoder(StringDecoder.allMimeTypes())
+				.build();
+
+		RSocketRequester requester = RSocketRequester.builder()
+				.rsocketStrategies(strategies)
+				.dataMimeType(MimeTypeUtils.APPLICATION_JSON)
+				.connect(this.transport)
+				.block();
+
+		Field field = DefaultRSocketRequester.class.getDeclaredField("dataMimeType");
+		ReflectionUtils.makeAccessible(field);
+		MimeType dataMimeType = (MimeType) ReflectionUtils.getField(field, requester);
+		assertThat(dataMimeType).isEqualTo(MimeTypeUtils.APPLICATION_JSON);
+	}
+
 
 	static class MockConnection implements DuplexConnection {
 
@@ -93,7 +131,6 @@ public class DefaultRSocketRequesterBuilderTests {
 
 		@Override
 		public void dispose() {
-
 		}
 	}
 

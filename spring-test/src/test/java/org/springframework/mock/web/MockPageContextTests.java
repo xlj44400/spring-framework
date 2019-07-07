@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2015 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import javax.servlet.jsp.PageContext;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for the {@code MockPageContext} class.
@@ -38,10 +38,10 @@ public class MockPageContextTests {
 	@Test
 	public void setAttributeWithNoScopeUsesPageScope() throws Exception {
 		ctx.setAttribute(key, value);
-		assertEquals(value, ctx.getAttribute(key, PageContext.PAGE_SCOPE));
-		assertNull(ctx.getAttribute(key, PageContext.APPLICATION_SCOPE));
-		assertNull(ctx.getAttribute(key, PageContext.REQUEST_SCOPE));
-		assertNull(ctx.getAttribute(key, PageContext.SESSION_SCOPE));
+		assertThat(ctx.getAttribute(key, PageContext.PAGE_SCOPE)).isEqualTo(value);
+		assertThat(ctx.getAttribute(key, PageContext.APPLICATION_SCOPE)).isNull();
+		assertThat(ctx.getAttribute(key, PageContext.REQUEST_SCOPE)).isNull();
+		assertThat(ctx.getAttribute(key, PageContext.SESSION_SCOPE)).isNull();
 	}
 
 	@Test
@@ -49,10 +49,10 @@ public class MockPageContextTests {
 		ctx.setAttribute(key, value, PageContext.APPLICATION_SCOPE);
 		ctx.removeAttribute(key);
 
-		assertNull(ctx.getAttribute(key, PageContext.PAGE_SCOPE));
-		assertNull(ctx.getAttribute(key, PageContext.APPLICATION_SCOPE));
-		assertNull(ctx.getAttribute(key, PageContext.REQUEST_SCOPE));
-		assertNull(ctx.getAttribute(key, PageContext.SESSION_SCOPE));
+		assertThat(ctx.getAttribute(key, PageContext.PAGE_SCOPE)).isNull();
+		assertThat(ctx.getAttribute(key, PageContext.APPLICATION_SCOPE)).isNull();
+		assertThat(ctx.getAttribute(key, PageContext.REQUEST_SCOPE)).isNull();
+		assertThat(ctx.getAttribute(key, PageContext.SESSION_SCOPE)).isNull();
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,12 @@ import org.junit.Test;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketHandler;
 
-import static org.junit.Assert.*;
-import static org.mockito.BDDMockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * Test fixture for {@link org.springframework.web.socket.adapter.standard.StandardWebSocketHandlerAdapter}.
@@ -65,7 +69,7 @@ public class StandardWebSocketHandlerAdapterTests {
 		verify(this.session, atLeast(2)).addMessageHandler(any(MessageHandler.Whole.class));
 
 		given(this.session.getRequestURI()).willReturn(uri);
-		assertEquals(uri, this.webSocketSession.getUri());
+		assertThat(this.webSocketSession.getUri()).isEqualTo(uri);
 	}
 
 	@Test

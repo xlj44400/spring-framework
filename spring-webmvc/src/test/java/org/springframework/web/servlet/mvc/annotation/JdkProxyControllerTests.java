@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 import org.springframework.web.servlet.DispatcherServlet;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Arjen Poutsma
@@ -54,7 +54,7 @@ public class JdkProxyControllerTests {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/test");
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		servlet.service(request, response);
-		assertEquals("doIt", response.getContentAsString());
+		assertThat(response.getContentAsString()).isEqualTo("doIt");
 	}
 
 	@Test
@@ -64,7 +64,7 @@ public class JdkProxyControllerTests {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/test");
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		servlet.service(request, response);
-		assertEquals("doIt", response.getContentAsString());
+		assertThat(response.getContentAsString()).isEqualTo("doIt");
 	}
 
 	@Test
@@ -74,7 +74,7 @@ public class JdkProxyControllerTests {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/hotels/bookings");
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		servlet.service(request, response);
-		assertEquals("doIt", response.getContentAsString());
+		assertThat(response.getContentAsString()).isEqualTo("doIt");
 	}
 
 

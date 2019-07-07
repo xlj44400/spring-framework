@@ -34,7 +34,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.reactive.BindingContext;
 import org.springframework.web.reactive.HandlerMapping;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 /**
  * Unit tests for {@link PathVariableMapMethodArgumentResolver}.
@@ -67,18 +68,12 @@ public class PathVariableMapMethodArgumentResolverTests {
 
 	@Test
 	public void supportsParameter() {
-		assertTrue(resolver.supportsParameter(paramMap));
-		assertFalse(resolver.supportsParameter(paramNamedMap));
-		assertFalse(resolver.supportsParameter(paramMapNoAnnot));
-		try {
-			this.resolver.supportsParameter(this.paramMonoMap);
-			fail();
-		}
-		catch (IllegalStateException ex) {
-			assertTrue("Unexpected error message:\n" + ex.getMessage(),
-					ex.getMessage().startsWith(
-							"PathVariableMapMethodArgumentResolver does not support reactive type wrapper"));
-		}
+		assertThat(resolver.supportsParameter(paramMap)).isTrue();
+		assertThat(resolver.supportsParameter(paramNamedMap)).isFalse();
+		assertThat(resolver.supportsParameter(paramMapNoAnnot)).isFalse();
+		assertThatIllegalStateException().isThrownBy(() ->
+				this.resolver.supportsParameter(this.paramMonoMap))
+			.withMessageStartingWith("PathVariableMapMethodArgumentResolver does not support reactive type wrapper");
 	}
 
 	@Test
@@ -91,7 +86,7 @@ public class PathVariableMapMethodArgumentResolverTests {
 		Mono<Object> mono = this.resolver.resolveArgument(this.paramMap, new BindingContext(), this.exchange);
 		Object result = mono.block();
 
-		assertEquals(uriTemplateVars, result);
+		assertThat(result).isEqualTo(uriTemplateVars);
 	}
 
 	@Test
@@ -99,7 +94,7 @@ public class PathVariableMapMethodArgumentResolverTests {
 		Mono<Object> mono = this.resolver.resolveArgument(this.paramMap, new BindingContext(), this.exchange);
 		Object result = mono.block();
 
-		assertEquals(Collections.emptyMap(), result);
+		assertThat(result).isEqualTo(Collections.emptyMap());
 	}
 
 

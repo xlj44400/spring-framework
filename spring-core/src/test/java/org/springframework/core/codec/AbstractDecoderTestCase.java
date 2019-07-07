@@ -33,7 +33,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * Abstract base class for {@link Decoder} unit tests. Subclasses need to implement
@@ -208,14 +208,9 @@ public abstract class AbstractDecoderTestCase<D extends Decoder<?>>
 	protected void testDecodeError(Publisher<DataBuffer> input, ResolvableType outputType,
 			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
 
-		input = Mono.from(input).concatWith(Flux.error(new InputException()));
-		try {
-			this.decoder.decode(input, outputType, mimeType, hints).blockLast(Duration.ofSeconds(5));
-			fail();
-		}
-		catch (InputException ex) {
-			// expected
-		}
+		Flux<DataBuffer> buffer = Mono.from(input).concatWith(Flux.error(new InputException()));
+		assertThatExceptionOfType(InputException.class).isThrownBy(() ->
+				this.decoder.decode(buffer, outputType, mimeType, hints).blockLast(Duration.ofSeconds(5)));
 	}
 
 	/**
@@ -303,7 +298,7 @@ public abstract class AbstractDecoderTestCase<D extends Decoder<?>>
 	}
 
 	/**
-	 * Test a standard {@link Decoder#decodeToMono) decode} scenario. For example:
+	 * Test a standard {@link Decoder#decodeToMono decode} scenario. For example:
 	 * <pre class="code">
 	 * byte[] bytes1 = ...
 	 * byte[] bytes2 = ...
@@ -330,7 +325,7 @@ public abstract class AbstractDecoderTestCase<D extends Decoder<?>>
 	}
 
 	/**
-	 * Test a standard {@link Decoder#decodeToMono) decode} scenario. For example:
+	 * Test a standard {@link Decoder#decodeToMono decode} scenario. For example:
 	 * <pre class="code">
 	 * byte[] bytes1 = ...
 	 * byte[] bytes2 = ...

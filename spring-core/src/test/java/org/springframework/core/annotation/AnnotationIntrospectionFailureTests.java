@@ -27,7 +27,8 @@ import org.springframework.core.OverridingClassLoader;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * Tests that trigger annotation introspection failures and ensure that they are
@@ -49,9 +50,9 @@ public class AnnotationIntrospectionFailureTests {
 		Annotation annotation = withExampleAnnotation.getAnnotations()[0];
 		Method method = annotation.annotationType().getMethod("value");
 		method.setAccessible(true);
-		assertThatExceptionOfType(TypeNotPresentException.class).isThrownBy(() -> {
-			ReflectionUtils.invokeMethod(method, annotation);
-		}).withCauseInstanceOf(ClassNotFoundException.class);
+		assertThatExceptionOfType(TypeNotPresentException.class).isThrownBy(() ->
+				ReflectionUtils.invokeMethod(method, annotation))
+			.withCauseInstanceOf(ClassNotFoundException.class);
 	}
 
 	@Test

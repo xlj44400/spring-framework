@@ -23,7 +23,7 @@ import reactor.test.StepVerifier;
 
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link TransactionalOperator}.
@@ -42,8 +42,8 @@ public class TransactionalOperatorTests {
 				.as(StepVerifier::create)
 				.expectNext(true)
 				.verifyComplete();
-		assertTrue(tm.commit);
-		assertFalse(tm.rollback);
+		assertThat(tm.commit).isTrue();
+		assertThat(tm.rollback).isFalse();
 	}
 
 	@Test
@@ -52,8 +52,8 @@ public class TransactionalOperatorTests {
 		Mono.error(new IllegalStateException()).as(operator::transactional)
 				.as(StepVerifier::create)
 				.verifyError(IllegalStateException.class);
-		assertFalse(tm.commit);
-		assertTrue(tm.rollback);
+		assertThat(tm.commit).isFalse();
+		assertThat(tm.rollback).isTrue();
 	}
 
 	@Test
@@ -63,8 +63,8 @@ public class TransactionalOperatorTests {
 				.as(StepVerifier::create)
 				.expectNextCount(4)
 				.verifyComplete();
-		assertTrue(tm.commit);
-		assertFalse(tm.rollback);
+		assertThat(tm.commit).isTrue();
+		assertThat(tm.rollback).isFalse();
 	}
 
 	@Test
@@ -73,8 +73,8 @@ public class TransactionalOperatorTests {
 		Flux.error(new IllegalStateException()).as(operator::transactional)
 				.as(StepVerifier::create)
 				.verifyError(IllegalStateException.class);
-		assertFalse(tm.commit);
-		assertTrue(tm.rollback);
+		assertThat(tm.commit).isFalse();
+		assertThat(tm.rollback).isTrue();
 	}
 
 }

@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests with error status codes or error conditions.
@@ -69,8 +69,8 @@ public class ErrorTests {
 				.expectBody().isEmpty();
 
 		byte[] content = result.getRequestBodyContent();
-		assertNotNull(content);
-		assertEquals("{\"name\":\"Dan\"}", new String(content, StandardCharsets.UTF_8));
+		assertThat(content).isNotNull();
+		assertThat(new String(content, StandardCharsets.UTF_8)).isEqualTo("{\"name\":\"Dan\"}");
 	}
 
 

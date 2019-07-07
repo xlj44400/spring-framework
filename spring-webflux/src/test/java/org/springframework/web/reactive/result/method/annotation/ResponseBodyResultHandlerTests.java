@@ -41,8 +41,8 @@ import org.springframework.web.reactive.HandlerResult;
 import org.springframework.web.reactive.accept.RequestedContentTypeResolver;
 import org.springframework.web.reactive.accept.RequestedContentTypeResolverBuilder;
 
-import static org.junit.Assert.*;
-import static org.springframework.web.method.ResolvableMethod.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.web.method.ResolvableMethod.on;
 
 /**
  * Unit tests for {@link ResponseBodyResultHandler}.When adding a test also
@@ -83,7 +83,7 @@ public class ResponseBodyResultHandlerTests {
 
 		method = on(TestController.class).annotNotPresent(ResponseBody.class).resolveMethod("doWork");
 		HandlerResult handlerResult = getHandlerResult(controller, method);
-		assertFalse(this.resultHandler.supports(handlerResult));
+		assertThat(this.resultHandler.supports(handlerResult)).isFalse();
 	}
 
 	@Test
@@ -106,7 +106,7 @@ public class ResponseBodyResultHandlerTests {
 
 	private void testSupports(Object controller, Method method) {
 		HandlerResult handlerResult = getHandlerResult(controller, method);
-		assertTrue(this.resultHandler.supports(handlerResult));
+		assertThat(this.resultHandler.supports(handlerResult)).isTrue();
 	}
 
 	private HandlerResult getHandlerResult(Object controller, Method method) {
@@ -116,7 +116,7 @@ public class ResponseBodyResultHandlerTests {
 
 	@Test
 	public void defaultOrder() {
-		assertEquals(100, this.resultHandler.getOrder());
+		assertThat(this.resultHandler.getOrder()).isEqualTo(100);
 	}
 
 

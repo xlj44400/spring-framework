@@ -229,8 +229,8 @@ public abstract class AnnotationUtils {
 	}
 
 	private static <A extends Annotation> boolean isSingleLevelPresent(MergedAnnotation<A> mergedAnnotation) {
-		int depth = mergedAnnotation.getDepth();
-		return (depth == 0 || depth == 1);
+		int distance = mergedAnnotation.getDistance();
+		return (distance == 0 || distance == 1);
 	}
 
 	/**
@@ -898,14 +898,14 @@ public abstract class AnnotationUtils {
 			for (int i = 0; i < methods.size(); i++) {
 				Method method = methods.get(i);
 				Object defaultValue = method.getDefaultValue();
-				if(defaultValue != null) {
+				if (defaultValue != null) {
 					result.put(method.getName(), new DefaultValueHolder(defaultValue));
 				}
 			}
 		}
 		else {
 			// If we have nested annotations, we need them as nested maps
-			AnnotationAttributes attributes = MergedAnnotation.from(annotationType)
+			AnnotationAttributes attributes = MergedAnnotation.of(annotationType)
 					.asMap(annotation ->
 							new AnnotationAttributes(annotation.getType(), true), Adapt.ANNOTATION_TO_MAP);
 			for (Map.Entry<String, Object> element : attributes.entrySet()) {
@@ -1151,7 +1151,7 @@ public abstract class AnnotationUtils {
 		if (annotationType == null || !StringUtils.hasText(attributeName)) {
 			return null;
 		}
-		return MergedAnnotation.from(annotationType).getDefaultValue(attributeName).orElse(null);
+		return MergedAnnotation.of(annotationType).getDefaultValue(attributeName).orElse(null);
 	}
 
 	/**
@@ -1232,7 +1232,7 @@ public abstract class AnnotationUtils {
 			Class<A> annotationType, @Nullable AnnotatedElement annotatedElement) {
 
 		try {
-			return MergedAnnotation.from(annotatedElement, annotationType, attributes).synthesize();
+			return MergedAnnotation.of(annotatedElement, annotationType, attributes).synthesize();
 		}
 		catch (NoSuchElementException | IllegalStateException ex) {
 			throw new IllegalArgumentException(ex);

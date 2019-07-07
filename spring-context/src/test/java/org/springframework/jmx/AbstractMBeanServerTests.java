@@ -29,7 +29,7 @@ import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.jmx.export.MBeanExporter;
 import org.springframework.util.MBeanTestUtils;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * <p>If you run into the <em>"Unsupported protocol: jmxmp"</em> error, you will need to
@@ -105,11 +105,11 @@ public abstract class AbstractMBeanServerTests {
 	}
 
 	protected void assertIsRegistered(String message, ObjectName objectName) {
-		assertTrue(message, getServer().isRegistered(objectName));
+		assertThat(getServer().isRegistered(objectName)).as(message).isTrue();
 	}
 
 	protected void assertIsNotRegistered(String message, ObjectName objectName) {
-		assertFalse(message, getServer().isRegistered(objectName));
+		assertThat(getServer().isRegistered(objectName)).as(message).isFalse();
 	}
 
 }

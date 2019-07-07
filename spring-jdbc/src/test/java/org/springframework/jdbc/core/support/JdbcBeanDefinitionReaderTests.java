@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +26,10 @@ import org.junit.Test;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.tests.sample.beans.TestBean;
 
-import static org.junit.Assert.*;
-import static org.mockito.BDDMockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * @author Rod Johnson
@@ -56,9 +58,9 @@ public class JdbcBeanDefinitionReaderTests {
 		JdbcBeanDefinitionReader reader = new JdbcBeanDefinitionReader(bf);
 		reader.setDataSource(dataSource);
 		reader.loadBeanDefinitions(sql);
-		assertEquals("Incorrect number of bean definitions", 1, bf.getBeanDefinitionCount());
+		assertThat(bf.getBeanDefinitionCount()).as("Incorrect number of bean definitions").isEqualTo(1);
 		TestBean tb = (TestBean) bf.getBean("one");
-		assertEquals("Age in TestBean was wrong.", 53, tb.getAge());
+		assertThat(tb.getAge()).as("Age in TestBean was wrong.").isEqualTo(53);
 
 		verify(resultSet).close();
 		verify(statement).close();

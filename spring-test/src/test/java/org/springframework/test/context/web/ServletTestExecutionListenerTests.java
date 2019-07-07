@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,13 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletWebRequest;
 
-import static org.junit.Assert.*;
-import static org.mockito.BDDMockito.*;
-import static org.springframework.test.context.web.ServletTestExecutionListener.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.context.web.ServletTestExecutionListener.POPULATED_REQUEST_CONTEXT_HOLDER_ATTRIBUTE;
+import static org.springframework.test.context.web.ServletTestExecutionListener.RESET_REQUEST_CONTEXT_HOLDER_ATTRIBUTE;
 
 /**
  * Unit tests for {@link ServletTestExecutionListener}.
@@ -168,26 +172,26 @@ public class ServletTestExecutionListenerTests {
 
 	private RequestAttributes assertRequestAttributesExist() {
 		RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-		assertNotNull("request attributes should exist", requestAttributes);
+		assertThat(requestAttributes).as("request attributes should exist").isNotNull();
 		return requestAttributes;
 	}
 
 	private void assertRequestAttributesDoNotExist() {
-		assertNull("request attributes should not exist", RequestContextHolder.getRequestAttributes());
+		assertThat(RequestContextHolder.getRequestAttributes()).as("request attributes should not exist").isNull();
 	}
 
 	private void assertSetUpOutsideOfStelAttributeExists() {
 		RequestAttributes requestAttributes = assertRequestAttributesExist();
 		Object setUpOutsideOfStel = requestAttributes.getAttribute(SET_UP_OUTSIDE_OF_STEL,
 			RequestAttributes.SCOPE_REQUEST);
-		assertNotNull(SET_UP_OUTSIDE_OF_STEL + " should exist as a request attribute", setUpOutsideOfStel);
+		assertThat(setUpOutsideOfStel).as(SET_UP_OUTSIDE_OF_STEL + " should exist as a request attribute").isNotNull();
 	}
 
 	private void assertSetUpOutsideOfStelAttributeDoesNotExist() {
 		RequestAttributes requestAttributes = assertRequestAttributesExist();
 		Object setUpOutsideOfStel = requestAttributes.getAttribute(SET_UP_OUTSIDE_OF_STEL,
 			RequestAttributes.SCOPE_REQUEST);
-		assertNull(SET_UP_OUTSIDE_OF_STEL + " should NOT exist as a request attribute", setUpOutsideOfStel);
+		assertThat(setUpOutsideOfStel).as(SET_UP_OUTSIDE_OF_STEL + " should NOT exist as a request attribute").isNull();
 	}
 
 	private void assertWebAppConfigTestCase() throws Exception {
