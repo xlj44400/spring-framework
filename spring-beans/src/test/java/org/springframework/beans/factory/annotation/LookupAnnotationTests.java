@@ -16,8 +16,8 @@
 
 package org.springframework.beans.factory.annotation;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RootBeanDefinition;
@@ -35,8 +35,8 @@ public class LookupAnnotationTests {
 	private DefaultListableBeanFactory beanFactory;
 
 
-	@Before
-	public void setUp() {
+	@BeforeEach
+	public void setup() {
 		beanFactory = new DefaultListableBeanFactory();
 		AutowiredAnnotationBeanPostProcessor aabpp = new AutowiredAnnotationBeanPostProcessor();
 		aabpp.setBeanFactory(beanFactory);
@@ -122,6 +122,7 @@ public class LookupAnnotationTests {
 		@Lookup
 		public abstract TestBean getTwoArguments(String name, int age);
 
+		// no @Lookup annotation
 		public abstract TestBean getThreeArguments(String name, int age, int anotherArg);
 	}
 

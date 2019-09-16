@@ -21,13 +21,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -50,7 +50,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
  * @author Rossen Stoyanchev
  * @author Brian Clozel
  */
-@RunWith(MockitoJUnitRunner.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class DefaultWebClientTests {
 
 	@Mock
@@ -62,7 +62,7 @@ public class DefaultWebClientTests {
 	private WebClient.Builder builder;
 
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		ClientResponse mockResponse = mock(ClientResponse.class);
 		given(this.exchangeFunction.exchange(this.captor.capture())).willReturn(Mono.just(mockResponse));
@@ -186,7 +186,7 @@ public class DefaultWebClientTests {
 		WebClient client = this.builder.build();
 
 		assertThatIllegalArgumentException().isThrownBy(() ->
-				client.post().uri("https://example.com").syncBody(mono));
+				client.post().uri("https://example.com").bodyValue(mono));
 	}
 
 	@Test

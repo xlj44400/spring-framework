@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import org.springframework.http.server.PathContainer;
 import org.springframework.http.server.PathContainer.Element;
@@ -99,8 +100,8 @@ public class PathPattern implements Comparable<PathPattern> {
 	/** The parser used to construct this pattern. */
 	private final PathPatternParser parser;
 
-	/** The separator used when parsing the pattern. */
-	private final char separator;
+	/** The options to use to parse a pattern. */
+	private final PathContainer.Options pathOptions;
 
 	/** If this pattern has no trailing slash, allow candidates to include one and still match successfully. */
 	private final boolean matchOptionalTrailingSeparator;
@@ -145,7 +146,7 @@ public class PathPattern implements Comparable<PathPattern> {
 	PathPattern(String patternText, PathPatternParser parser, @Nullable PathElement head) {
 		this.patternString = patternText;
 		this.parser = parser;
-		this.separator = parser.getSeparator();
+		this.pathOptions = parser.getPathOptions();
 		this.matchOptionalTrailingSeparator = parser.isMatchOptionalTrailingSeparator();
 		this.caseSensitive = parser.isCaseSensitive();
 		this.head = head;
@@ -339,7 +340,7 @@ public class PathPattern implements Comparable<PathPattern> {
 					}
 				}
 			}
-			resultPath = PathContainer.parsePath(buf.toString(), String.valueOf(this.separator));
+			resultPath = PathContainer.parsePath(buf.toString(), this.pathOptions);
 		}
 		else if (startIndex >= endIndex) {
 			resultPath = PathContainer.parsePath("");
@@ -400,7 +401,7 @@ public class PathPattern implements Comparable<PathPattern> {
 		// /hotels + /booking => /hotels/booking
 		// /hotels + booking => /hotels/booking
 		int starDotPos1 = this.patternString.indexOf("*.");  // Are there any file prefix/suffix things to consider?
-		if (this.capturedVariableCount != 0 || starDotPos1 == -1 || this.separator == '.') {
+		if (this.capturedVariableCount != 0 || starDotPos1 == -1 || getSeparator() == '.') {
 			return this.parser.parse(concat(this.patternString, pattern2string.patternString));
 		}
 
@@ -420,20 +421,23 @@ public class PathPattern implements Comparable<PathPattern> {
 		return this.parser.parse(file2 + (firstExtensionWild ? secondExtension : firstExtension));
 	}
 
+	@Override
 	public boolean equals(@Nullable Object other) {
 		if (!(other instanceof PathPattern)) {
 			return false;
 		}
 		PathPattern otherPattern = (PathPattern) other;
 		return (this.patternString.equals(otherPattern.getPatternString()) &&
-				this.separator == otherPattern.getSeparator() &&
+				getSeparator() == otherPattern.getSeparator() &&
 				this.caseSensitive == otherPattern.caseSensitive);
 	}
 
+	@Override
 	public int hashCode() {
-		return (this.patternString.hashCode() + this.separator) * 17 + (this.caseSensitive ? 1 : 0);
+		return (this.patternString.hashCode() + getSeparator()) * 17 + (this.caseSensitive ? 1 : 0);
 	}
 
+	@Override
 	public String toString() {
 		return this.patternString;
 	}
@@ -457,7 +461,7 @@ public class PathPattern implements Comparable<PathPattern> {
 	}
 
 	char getSeparator() {
-		return this.separator;
+		return this.pathOptions.separator();
 	}
 
 	int getCapturedVariableCount() {
@@ -465,13 +469,13 @@ public class PathPattern implements Comparable<PathPattern> {
 	}
 
 	String toChainString() {
-		StringBuilder buf = new StringBuilder();
+		StringJoiner stringJoiner = new StringJoiner(" ");
 		PathElement pe = this.head;
 		while (pe != null) {
-			buf.append(pe.toString()).append(" ");
+			stringJoiner.add(pe.toString());
 			pe = pe.next;
 		}
-		return buf.toString().trim();
+		return stringJoiner.toString();
 	}
 
 	/**
@@ -502,8 +506,8 @@ public class PathPattern implements Comparable<PathPattern> {
 	 * @return joined path that may include separator if necessary
 	 */
 	private String concat(String path1, String path2) {
-		boolean path1EndsWithSeparator = (path1.charAt(path1.length() - 1) == this.separator);
-		boolean path2StartsWithSeparator = (path2.charAt(0) == this.separator);
+		boolean path1EndsWithSeparator = (path1.charAt(path1.length() - 1) == getSeparator());
+		boolean path2StartsWithSeparator = (path2.charAt(0) == getSeparator());
 		if (path1EndsWithSeparator && path2StartsWithSeparator) {
 			return path1 + path2.substring(1);
 		}
@@ -511,7 +515,7 @@ public class PathPattern implements Comparable<PathPattern> {
 			return path1 + path2;
 		}
 		else {
-			return path1 + this.separator + path2;
+			return path1 + getSeparator() + path2;
 		}
 	}
 
@@ -530,7 +534,7 @@ public class PathPattern implements Comparable<PathPattern> {
 
 	private boolean pathContainerIsJustSeparator(PathContainer pathContainer) {
 		return pathContainer.value().length() == 1 &&
-				pathContainer.value().charAt(0) == this.separator;
+				pathContainer.value().charAt(0) == getSeparator();
 	}
 
 	/**

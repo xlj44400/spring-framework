@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.BeansException;
@@ -633,6 +633,7 @@ public class ApplicationContextEventTests extends AbstractApplicationEventListen
 
 		private ApplicationContext applicationContext;
 
+		@Override
 		public void setApplicationContext(ApplicationContext applicationContext) {
 			this.applicationContext = applicationContext;
 		}

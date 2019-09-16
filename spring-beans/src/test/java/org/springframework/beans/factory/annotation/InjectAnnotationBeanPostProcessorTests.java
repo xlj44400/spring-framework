@@ -22,13 +22,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.BeanFactory;
@@ -62,7 +63,7 @@ public class InjectAnnotationBeanPostProcessorTests {
 	private AutowiredAnnotationBeanPostProcessor bpp;
 
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		bf = new DefaultListableBeanFactory();
 		bf.registerResolvableDependency(BeanFactory.class, bf);
@@ -72,7 +73,7 @@ public class InjectAnnotationBeanPostProcessorTests {
 		bf.setAutowireCandidateResolver(new QualifierAnnotationAutowireCandidateResolver());
 	}
 
-	@After
+	@AfterEach
 	public void close() {
 		bf.destroySingletons();
 	}

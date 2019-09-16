@@ -28,8 +28,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -51,6 +51,7 @@ import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.codec.ResourceHttpMessageWriter;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.http.codec.xml.Jaxb2XmlEncoder;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.mock.web.test.server.MockServerWebExchange;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.reactive.HandlerResult;
@@ -80,7 +81,7 @@ public class ResponseEntityResultHandlerTests {
 	private ResponseEntityResultHandler resultHandler;
 
 
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		this.resultHandler = createHandler();
 	}
@@ -365,7 +366,7 @@ public class ResponseEntityResultHandlerTests {
 
 		StepVerifier.create(resultHandler.handleResult(exchange, result))
 				.consumeErrorWith(ex -> assertThat(ex)
-						.isInstanceOf(IllegalStateException.class)
+						.isInstanceOf(HttpMessageNotWritableException.class)
 						.hasMessageContaining("with preset Content-Type"))
 				.verify();
 	}

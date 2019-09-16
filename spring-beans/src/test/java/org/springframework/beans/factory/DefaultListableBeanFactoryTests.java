@@ -38,13 +38,15 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
+
 import javax.annotation.Priority;
 import javax.security.auth.Subject;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.MutablePropertyValues;
@@ -87,6 +89,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.lang.Nullable;
 import org.springframework.tests.Assume;
+import org.springframework.tests.EnabledForTestGroups;
 import org.springframework.tests.TestGroup;
 import org.springframework.tests.sample.beans.DependenciesBean;
 import org.springframework.tests.sample.beans.DerivedTestBean;
@@ -1751,6 +1754,8 @@ public class DefaultListableBeanFactoryTests {
 		assertThat(lbf.getBeanNamesForType(ConstructorDependencyFactoryBean.class).length).isEqualTo(1);
 		assertThat(lbf.getBeanNamesForType(ResolvableType.forClassWithGenerics(FactoryBean.class, Object.class)).length).isEqualTo(1);
 		assertThat(lbf.getBeanNamesForType(ResolvableType.forClassWithGenerics(FactoryBean.class, String.class)).length).isEqualTo(0);
+		assertThat(lbf.getBeanNamesForType(ResolvableType.forClassWithGenerics(FactoryBean.class, Object.class), true, true).length).isEqualTo(1);
+		assertThat(lbf.getBeanNamesForType(ResolvableType.forClassWithGenerics(FactoryBean.class, String.class), true, true).length).isEqualTo(0);
 	}
 
 	private RootBeanDefinition createConstructorDependencyBeanDefinition(int age) {
@@ -2289,8 +2294,8 @@ public class DefaultListableBeanFactoryTests {
 	}
 
 	@Test
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testPrototypeCreationIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		Assume.notLogging(factoryLog);
 		RootBeanDefinition rbd = new RootBeanDefinition(TestBean.class);
 		rbd.setScope(RootBeanDefinition.SCOPE_PROTOTYPE);
@@ -2307,8 +2312,8 @@ public class DefaultListableBeanFactoryTests {
 	}
 
 	@Test
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testPrototypeCreationWithDependencyCheckIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		Assume.notLogging(factoryLog);
 		RootBeanDefinition rbd = new RootBeanDefinition(LifecycleBean.class);
 		rbd.setScope(RootBeanDefinition.SCOPE_PROTOTYPE);
@@ -2327,9 +2332,9 @@ public class DefaultListableBeanFactoryTests {
 	}
 
 	@Test
-	@Ignore  // TODO re-enable when ConstructorResolver TODO sorted out
+	@Disabled  // TODO re-enable when ConstructorResolver TODO sorted out
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testPrototypeCreationWithConstructorArgumentsIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		Assume.notLogging(factoryLog);
 		RootBeanDefinition rbd = new RootBeanDefinition(TestBean.class);
 		rbd.setScope(RootBeanDefinition.SCOPE_PROTOTYPE);
@@ -2350,8 +2355,8 @@ public class DefaultListableBeanFactoryTests {
 	}
 
 	@Test
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testPrototypeCreationWithResolvedConstructorArgumentsIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		Assume.notLogging(factoryLog);
 		RootBeanDefinition rbd = new RootBeanDefinition(TestBean.class);
 		rbd.setScope(RootBeanDefinition.SCOPE_PROTOTYPE);
@@ -2372,8 +2377,8 @@ public class DefaultListableBeanFactoryTests {
 	}
 
 	@Test
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testPrototypeCreationWithPropertiesIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		Assume.notLogging(factoryLog);
 		RootBeanDefinition rbd = new RootBeanDefinition(TestBean.class);
 		rbd.setScope(RootBeanDefinition.SCOPE_PROTOTYPE);
@@ -2394,8 +2399,8 @@ public class DefaultListableBeanFactoryTests {
 	}
 
 	@Test
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testPrototypeCreationWithResolvedPropertiesIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		Assume.notLogging(factoryLog);
 		RootBeanDefinition rbd = new RootBeanDefinition(TestBean.class);
 		rbd.setScope(RootBeanDefinition.SCOPE_PROTOTYPE);
@@ -2416,8 +2421,8 @@ public class DefaultListableBeanFactoryTests {
 	}
 
 	@Test
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testSingletonLookupByNameIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		Assume.notLogging(factoryLog);
 		lbf.registerBeanDefinition("test", new RootBeanDefinition(TestBean.class));
 		lbf.freezeConfiguration();
@@ -2432,8 +2437,8 @@ public class DefaultListableBeanFactoryTests {
 	}
 
 	@Test
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testSingletonLookupByTypeIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		Assume.notLogging(factoryLog);
 		lbf.registerBeanDefinition("test", new RootBeanDefinition(TestBean.class));
 		lbf.freezeConfiguration();
@@ -2792,10 +2797,10 @@ public class DefaultListableBeanFactoryTests {
 	 * under the 1000 ms timeout, usually ~= 300ms. With caching removed and on the same
 	 * hardware the method will take ~13000 ms. See SPR-6870.
 	 */
-	@Test(timeout = 1000)
+	@Test
+	@Timeout(1)
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testByTypeLookupIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
-
 		for (int i = 0; i < 1000; i++) {
 			lbf.registerBeanDefinition("a" + i, new RootBeanDefinition(A.class));
 		}
@@ -2808,9 +2813,10 @@ public class DefaultListableBeanFactoryTests {
 		}
 	}
 
-	@Test(timeout = 1000)
+	@Test
+	@Timeout(1)
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testRegistrationOfManyBeanDefinitionsIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		lbf.registerBeanDefinition("b", new RootBeanDefinition(B.class));
 		// lbf.getBean("b");
 
@@ -2819,9 +2825,10 @@ public class DefaultListableBeanFactoryTests {
 		}
 	}
 
-	@Test(timeout = 1000)
+	@Test
+	@Timeout(1)
+	@EnabledForTestGroups(TestGroup.PERFORMANCE)
 	public void testRegistrationOfManySingletonsIsFastEnough() {
-		Assume.group(TestGroup.PERFORMANCE);
 		lbf.registerBeanDefinition("b", new RootBeanDefinition(B.class));
 		// lbf.getBean("b");
 

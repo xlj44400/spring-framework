@@ -16,7 +16,10 @@
 
 package org.springframework.web.reactive.function.server
 
-import org.junit.Test
+import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThatExceptionOfType
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders.*
 import org.springframework.http.HttpMethod.*
@@ -119,9 +122,11 @@ class CoRouterFunctionDslTests {
 				.verifyComplete()
 	}
 
-	@Test(expected = IllegalStateException::class)
+	@Test
 	fun emptyRouter() {
-		router { }
+		assertThatExceptionOfType(IllegalStateException::class.java).isThrownBy {
+			router { }
+		}
 	}
 
 

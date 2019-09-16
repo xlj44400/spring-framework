@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.util.UriTemplate;
@@ -106,6 +106,7 @@ public class RequestEntityTests {
 				ifNoneMatch(ifNoneMatch).
 				contentLength(contentLength).
 				contentType(contentType).
+				headers(headers -> assertThat(headers).hasSize(6)).
 				build();
 
 		assertThat(responseEntity).isNotNull();

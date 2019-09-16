@@ -19,11 +19,10 @@ package org.springframework.web.reactive.function.client
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -51,7 +50,7 @@ class ClientResponseExtensionsTests {
 	}
 
 	@Test
-	@FlowPreview
+	@ExperimentalCoroutinesApi
 	fun `bodyToFlow with reified type parameters`() {
 		response.bodyToFlow<List<Foo>>()
 		verify { response.bodyToFlux(object : ParameterizedTypeReference<List<Foo>>() {}) }
@@ -74,7 +73,7 @@ class ClientResponseExtensionsTests {
 		val response = mockk<ClientResponse>()
 		every { response.bodyToMono<String>() } returns Mono.just("foo")
 		runBlocking {
-			assertEquals("foo", response.awaitBody<String>())
+			assertThat(response.awaitBody<String>()).isEqualTo("foo")
 		}
 	}
 
@@ -83,7 +82,7 @@ class ClientResponseExtensionsTests {
 		val response = mockk<ClientResponse>()
 		every { response.bodyToMono<String>() } returns Mono.empty()
 		runBlocking {
-			assertNull(response.awaitBodyOrNull<String>())
+			assertThat(response.awaitBodyOrNull<String>()).isNull()
 		}
 	}
 
@@ -93,7 +92,7 @@ class ClientResponseExtensionsTests {
 		val entity = ResponseEntity("foo", HttpStatus.OK)
 		every { response.toEntity<String>() } returns Mono.just(entity)
 		runBlocking {
-			assertEquals(entity, response.awaitEntity<String>())
+			assertThat(response.awaitEntity<String>()).isEqualTo(entity)
 		}
 	}
 
@@ -103,7 +102,7 @@ class ClientResponseExtensionsTests {
 		val entity = ResponseEntity(listOf("foo"), HttpStatus.OK)
 		every { response.toEntityList<String>() } returns Mono.just(entity)
 		runBlocking {
-			assertEquals(entity, response.awaitEntityList<String>())
+			assertThat(response.awaitEntityList<String>()).isEqualTo(entity)
 		}
 	}
 

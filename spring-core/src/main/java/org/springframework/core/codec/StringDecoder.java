@@ -32,6 +32,9 @@ import reactor.core.publisher.Flux;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.core.io.buffer.DataBufferWrapper;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.core.io.buffer.PooledDataBuffer;
 import org.springframework.core.log.LogFormatUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -88,8 +91,15 @@ public final class StringDecoder extends AbstractDataBufferDecoder<String> {
 
 		byte[][] delimiterBytes = getDelimiterBytes(mimeType);
 
-		Flux<DataBuffer> inputFlux =
-				DataBufferUtils.split(input, delimiterBytes, this.stripDelimiter);
+		Flux<DataBuffer> inputFlux = Flux.defer(() -> {
+			DataBufferUtils.Matcher matcher = DataBufferUtils.matcher(delimiterBytes);
+			return Flux.from(input)
+					.concatMapIterable(buffer -> endFrameAfterDelimiter(buffer, matcher))
+					.bufferUntil(buffer -> buffer instanceof EndFrameBuffer)
+					.map(buffers -> joinAndStrip(buffers, this.stripDelimiter))
+					.doOnDiscard(PooledDataBuffer.class, DataBufferUtils::release);
+
+		});
 
 		return super.decode(inputFlux, elementType, mimeType, hints);
 	}
@@ -127,6 +137,69 @@ public final class StringDecoder extends AbstractDataBufferDecoder<String> {
 			return DEFAULT_CHARSET;
 		}
 	}
+
+	/**
+	 * Finds the first match and longest delimiter, {@link EndFrameBuffer} just after it.
+	 *
+	 * @param dataBuffer the buffer to find delimiters in
+	 * @param matcher used to find the first delimiters
+	 * @return a flux of buffers, containing {@link EndFrameBuffer} after each delimiter that was
+	 * found in {@code dataBuffer}. Returns  Flux, because returning List (w/ flatMapIterable)
+	 * results in memory leaks due to pre-fetching.
+	 */
+	private static List<DataBuffer> endFrameAfterDelimiter(DataBuffer dataBuffer, DataBufferUtils.Matcher matcher) {
+		List<DataBuffer> result = new ArrayList<>();
+		do {
+			int endIdx = matcher.match(dataBuffer);
+			if (endIdx != -1) {
+				int readPosition = dataBuffer.readPosition();
+				int length = endIdx - readPosition + 1;
+				result.add(dataBuffer.retainedSlice(readPosition, length));
+				result.add(new EndFrameBuffer(matcher.delimiter()));
+				dataBuffer.readPosition(endIdx + 1);
+			}
+			else {
+				result.add(DataBufferUtils.retain(dataBuffer));
+				break;
+			}
+		}
+		while (dataBuffer.readableByteCount() > 0);
+
+		DataBufferUtils.release(dataBuffer);
+		return result;
+	}
+
+	/**
+	 * Joins the given list of buffers. If the list ends with a {@link EndFrameBuffer}, it is
+	 * removed. If {@code stripDelimiter} is {@code true} and the resulting buffer ends with
+	 * a delimiter, it is removed.
+	 * @param dataBuffers the data buffers to join
+	 * @param stripDelimiter whether to strip the delimiter
+	 * @return the joined buffer
+	 */
+	private static DataBuffer joinAndStrip(List<DataBuffer> dataBuffers,
+			boolean stripDelimiter) {
+
+		Assert.state(!dataBuffers.isEmpty(), "DataBuffers should not be empty");
+
+		byte[] matchingDelimiter = null;
+
+		int lastIdx = dataBuffers.size() - 1;
+		DataBuffer lastBuffer = dataBuffers.get(lastIdx);
+		if (lastBuffer instanceof EndFrameBuffer) {
+			matchingDelimiter = ((EndFrameBuffer) lastBuffer).delimiter();
+			dataBuffers.remove(lastIdx);
+		}
+
+		DataBuffer result = dataBuffers.get(0).factory().join(dataBuffers);
+
+		if (stripDelimiter && matchingDelimiter != null) {
+			result.writePosition(result.writePosition() - matchingDelimiter.length);
+		}
+		return result;
+	}
+
+
 
 
 	/**
@@ -185,5 +258,25 @@ public final class StringDecoder extends AbstractDataBufferDecoder<String> {
 		return new StringDecoder(delimiters, stripDelimiter,
 				new MimeType("text", "plain", DEFAULT_CHARSET), MimeTypeUtils.ALL);
 	}
+
+
+	private static class EndFrameBuffer extends DataBufferWrapper {
+
+		private static final DataBuffer BUFFER = new DefaultDataBufferFactory().wrap(new byte[0]);
+
+		private byte[] delimiter;
+
+
+		public EndFrameBuffer(byte[] delimiter) {
+			super(BUFFER);
+			this.delimiter = delimiter;
+		}
+
+		public byte[] delimiter() {
+			return this.delimiter;
+		}
+
+	}
+
 
 }

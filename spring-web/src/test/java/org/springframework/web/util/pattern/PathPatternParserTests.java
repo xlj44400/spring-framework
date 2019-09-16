@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.http.server.PathContainer;
 import org.springframework.web.util.pattern.PatternParseException.PatternMessage;
@@ -184,6 +184,7 @@ public class PathPatternParserTests {
 		checkStructure("/{foo}");
 		checkStructure("/{f}/");
 		checkStructure("/{foo}/{bar}/{wibble}");
+		checkStructure("/{mobile-number}"); // gh-23101
 	}
 
 	@Test
@@ -411,7 +412,7 @@ public class PathPatternParserTests {
 	@Test
 	public void separatorTests() {
 		PathPatternParser parser = new PathPatternParser();
-		parser.setSeparator('.');
+		parser.setPathOptions(PathContainer.Options.create('.', false));
 		String rawPattern = "first.second.{last}";
 		PathPattern pattern = parser.parse(rawPattern);
 		assertThat(pattern.computePatternString()).isEqualTo(rawPattern);

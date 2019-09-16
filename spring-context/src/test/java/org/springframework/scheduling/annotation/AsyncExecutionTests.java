@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.awaitility.Awaitility;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
@@ -565,11 +565,13 @@ public class AsyncExecutionTests {
 	@Async
 	public static class AsyncClassBeanWithInterface implements RegularInterface {
 
+		@Override
 		public void doSomething(int i) {
 			boolean condition = !Thread.currentThread().getName().equals(originalThreadName);
 			assertThat(condition).isTrue();
 		}
 
+		@Override
 		public Future<String> returnSomething(int i) {
 			boolean condition = !Thread.currentThread().getName().equals(originalThreadName);
 			assertThat(condition).isTrue();

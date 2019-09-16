@@ -23,7 +23,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -249,6 +249,7 @@ public class AsyncTests {
 		public DeferredResult<Person> getDeferredResultWithDelayedError() {
 			final DeferredResult<Person> deferredResult = new DeferredResult<>();
 			new Thread() {
+				@Override
 				public void run() {
 					try {
 						Thread.sleep(100);

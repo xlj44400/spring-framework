@@ -21,7 +21,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.factory.support.PropertiesBeanDefinitionReader;
@@ -64,9 +65,8 @@ public class StaticMessageSourceTests extends AbstractApplicationContextTests {
 
 	@Test
 	@Override
+	@Disabled("Do nothing here since super is looking for errorCodes we do NOT have in the Context")
 	public void messageSource() throws NoSuchMessageException {
-		// Do nothing here since super is looking for errorCodes we
-		// do NOT have in the Context
 	}
 
 	@Test

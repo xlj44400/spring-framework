@@ -18,14 +18,14 @@ package org.springframework.messaging.rsocket;
 
 import java.time.Duration;
 
-import io.netty.buffer.PooledByteBufAllocator;
 import io.rsocket.RSocketFactory;
+import io.rsocket.SocketAcceptor;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
@@ -36,10 +36,8 @@ import reactor.test.StepVerifier;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.codec.CharSequenceEncoder;
-import org.springframework.core.codec.StringDecoder;
-import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.rsocket.annotation.ConnectMapping;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.stereotype.Controller;
 
@@ -56,20 +54,23 @@ public class RSocketServerToClientIntegrationTests {
 	private static CloseableChannel server;
 
 
-	@BeforeClass
+	@BeforeAll
 	@SuppressWarnings("ConstantConditions")
 	public static void setupOnce() {
+
 		context = new AnnotationConfigApplicationContext(RSocketConfig.class);
+		RSocketMessageHandler messageHandler = context.getBean(RSocketMessageHandler.class);
+		SocketAcceptor responder = messageHandler.responder();
 
 		server = RSocketFactory.receive()
 				.frameDecoder(PayloadDecoder.ZERO_COPY)
-				.acceptor(context.getBean(RSocketMessageHandler.class).serverAcceptor())
+				.acceptor(responder)
 				.transport(TcpServerTransport.create("localhost", 0))
 				.start()
 				.block();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownOnce() {
 		server.dispose();
 	}
@@ -77,39 +78,42 @@ public class RSocketServerToClientIntegrationTests {
 
 	@Test
 	public void echo() {
-		connectAndVerify("connect.echo");
+		connectAndRunTest("echo");
 	}
 
 	@Test
 	public void echoAsync() {
-		connectAndVerify("connect.echo-async");
+		connectAndRunTest("echo-async");
 	}
 
 	@Test
 	public void echoStream() {
-		connectAndVerify("connect.echo-stream");
+		connectAndRunTest("echo-stream");
 	}
 
 	@Test
 	public void echoChannel() {
-		connectAndVerify("connect.echo-channel");
+		connectAndRunTest("echo-channel");
 	}
 
 
-	private static void connectAndVerify(String destination) {
+	private static void connectAndRunTest(String connectionRoute) {
 
 		ServerController serverController = context.getBean(ServerController.class);
 		serverController.reset();
 
+		RSocketStrategies strategies = context.getBean(RSocketStrategies.class);
+		ClientRSocketFactoryConfigurer clientResponderConfigurer =
+				RSocketMessageHandler.clientResponder(strategies, new ClientHandler());
+
 		RSocketRequester requester = null;
 		try {
 			requester = RSocketRequester.builder()
-					.annotatedHandlers(new ClientHandler())
-					.rsocketStrategies(context.getBean(RSocketStrategies.class))
+					.setupRoute(connectionRoute)
+					.rsocketStrategies(strategies)
+					.rsocketFactory(clientResponderConfigurer)
 					.connectTcp("localhost", server.address().getPort())
 					.block();
-
-			requester.route(destination).data("").send().block();
 
 			serverController.await(Duration.ofSeconds(5));
 		}
@@ -138,7 +142,7 @@ public class RSocketServerToClientIntegrationTests {
 		}
 
 
-		@MessageMapping("connect.echo")
+		@ConnectMapping("echo")
 		void echo(RSocketRequester requester) {
 			runTest(() -> {
 				Flux<String> flux = Flux.range(1, 3).concatMap(i ->
@@ -153,7 +157,7 @@ public class RSocketServerToClientIntegrationTests {
 			});
 		}
 
-		@MessageMapping("connect.echo-async")
+		@ConnectMapping("echo-async")
 		void echoAsync(RSocketRequester requester) {
 			runTest(() -> {
 				Flux<String> flux = Flux.range(1, 3).concatMap(i ->
@@ -168,7 +172,7 @@ public class RSocketServerToClientIntegrationTests {
 			});
 		}
 
-		@MessageMapping("connect.echo-stream")
+		@ConnectMapping("echo-stream")
 		void echoStream(RSocketRequester requester) {
 			runTest(() -> {
 				Flux<String> flux = requester.route("echo-stream").data("Hello").retrieveFlux(String.class);
@@ -183,7 +187,7 @@ public class RSocketServerToClientIntegrationTests {
 			});
 		}
 
-		@MessageMapping("connect.echo-channel")
+		@ConnectMapping("echo-channel")
 		void echoChannel(RSocketRequester requester) {
 			runTest(() -> {
 				Flux<String> flux = requester.route("echo-channel")
@@ -195,8 +199,7 @@ public class RSocketServerToClientIntegrationTests {
 						.expectNextCount(7)
 						.expectNext("Hello 9 async")
 						.expectNext("Hello 10 async")
-						.thenCancel()  // https://github.com/rsocket/rsocket-java/issues/613
-						.verify(Duration.ofSeconds(5));
+						.verifyComplete();
 			});
 		}
 
@@ -259,11 +262,7 @@ public class RSocketServerToClientIntegrationTests {
 
 		@Bean
 		public RSocketStrategies rsocketStrategies() {
-			return RSocketStrategies.builder()
-					.decoder(StringDecoder.allMimeTypes())
-					.encoder(CharSequenceEncoder.allMimeTypes())
-					.dataBufferFactory(new NettyDataBufferFactory(PooledByteBufAllocator.DEFAULT))
-					.build();
+			return RSocketStrategies.create();
 		}
 	}
 

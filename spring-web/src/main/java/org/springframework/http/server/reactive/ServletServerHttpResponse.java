@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.http.server.reactive;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
@@ -100,7 +101,7 @@ class ServletServerHttpResponse extends AbstractListenerServerHttpResponse {
 	@Override
 	public HttpStatus getStatusCode() {
 		HttpStatus httpStatus = super.getStatusCode();
-		return httpStatus != null ? httpStatus : HttpStatus.resolve(this.response.getStatus());
+		return (httpStatus != null ? httpStatus : HttpStatus.resolve(this.response.getStatus()));
 	}
 
 	@Override
@@ -118,13 +119,24 @@ class ServletServerHttpResponse extends AbstractListenerServerHttpResponse {
 				this.response.addHeader(headerName, headerValue);
 			}
 		});
-		MediaType contentType = getHeaders().getContentType();
+		MediaType contentType = null;
+		try {
+			contentType = getHeaders().getContentType();
+		}
+		catch (Exception ex) {
+			String rawContentType = getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
+			this.response.setContentType(rawContentType);
+		}
 		if (this.response.getContentType() == null && contentType != null) {
 			this.response.setContentType(contentType.toString());
 		}
 		Charset charset = (contentType != null ? contentType.getCharset() : null);
 		if (this.response.getCharacterEncoding() == null && charset != null) {
 			this.response.setCharacterEncoding(charset.name());
+		}
+		long contentLength = getHeaders().getContentLength();
+		if (contentLength != -1) {
+			this.response.setContentLengthLong(contentLength);
 		}
 	}
 

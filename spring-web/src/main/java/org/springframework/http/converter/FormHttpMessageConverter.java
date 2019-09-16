@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.mail.internet.MimeUtility;
 
 import org.springframework.core.io.Resource;
@@ -189,7 +190,7 @@ public class FormHttpMessageConverter implements HttpMessageConverter<MultiValue
 
 	/**
 	 * Set the list of {@link MediaType} objects supported by this converter.
-	 * @see #addSupportedMediaType(MediaType)
+	 * @see #addSupportedMediaTypes(MediaType...)
 	 * @see #getSupportedMediaTypes()
 	 */
 	public void setSupportedMediaTypes(List<MediaType> supportedMediaTypes) {
@@ -438,7 +439,8 @@ public class FormHttpMessageConverter implements HttpMessageConverter<MultiValue
 		return builder.toString();
 	}
 
-	private void writeMultipart(MultiValueMap<String, Object> parts, MediaType contentType, HttpOutputMessage outputMessage)
+	private void writeMultipart(
+			MultiValueMap<String, Object> parts, @Nullable MediaType contentType, HttpOutputMessage outputMessage)
 			throws IOException {
 
 		// If the supplied content type is null, fall back to multipart/form-data.
