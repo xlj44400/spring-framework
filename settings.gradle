@@ -5,7 +5,14 @@ pluginManagement {
 	}
 }
 
-enableFeaturePreview("GRADLE_METADATA")
+buildCache {
+	local {
+		enabled = true
+	}
+	remote(HttpBuildCache) {
+		enabled = false
+	}
+}
 
 include "spring-aop"
 include "spring-aspects"
