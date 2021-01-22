@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.codec.json.JacksonViewBean.MyJacksonView1;
 import org.springframework.http.codec.json.JacksonViewBean.MyJacksonView3;
+import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.testfixture.xml.Pojo;
@@ -47,6 +48,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_NDJSON;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
 import static org.springframework.http.MediaType.APPLICATION_STREAM_JSON;
 import static org.springframework.http.MediaType.APPLICATION_XML;
@@ -66,6 +68,7 @@ public class Jackson2JsonEncoderTests extends AbstractEncoderTests<Jackson2JsonE
 	public void canEncode() {
 		ResolvableType pojoType = ResolvableType.forClass(Pojo.class);
 		assertThat(this.encoder.canEncode(pojoType, APPLICATION_JSON)).isTrue();
+		assertThat(this.encoder.canEncode(pojoType, APPLICATION_NDJSON)).isTrue();
 		assertThat(this.encoder.canEncode(pojoType, APPLICATION_STREAM_JSON)).isTrue();
 		assertThat(this.encoder.canEncode(pojoType, null)).isTrue();
 
@@ -210,6 +213,25 @@ public class Jackson2JsonEncoderTests extends AbstractEncoderTests<Jackson2JsonE
 								.andThen(DataBufferUtils::release))
 						.verifyComplete(),
 				null, hints);
+	}
+
+	@Test
+	public void jacksonValue() {
+		JacksonViewBean bean = new JacksonViewBean();
+		bean.setWithView1("with");
+		bean.setWithView2("with");
+		bean.setWithoutView("without");
+
+		MappingJacksonValue jacksonValue = new MappingJacksonValue(bean);
+		jacksonValue.setSerializationView(MyJacksonView1.class);
+
+		ResolvableType type = ResolvableType.forClass(MappingJacksonValue.class);
+
+		testEncode(Mono.just(jacksonValue), type, step -> step
+						.consumeNextWith(expectString("{\"withView1\":\"with\"}")
+								.andThen(DataBufferUtils::release))
+						.verifyComplete(),
+				null, Collections.emptyMap());
 	}
 
 	@Test // gh-22771

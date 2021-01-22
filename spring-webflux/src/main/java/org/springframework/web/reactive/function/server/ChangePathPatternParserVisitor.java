@@ -16,6 +16,7 @@
 
 package org.springframework.web.reactive.function.server;
 
+import java.util.Map;
 import java.util.function.Function;
 
 import reactor.core.publisher.Mono;
@@ -27,7 +28,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
 /**
  * Implementation of {@link RouterFunctions.Visitor} that changes the
  * {@link PathPatternParser} on path-related request predicates
- * (i.e. {@code RequestPredicates.PathPatternPredicate}.
+ * (i.e. {@link RequestPredicates.PathPatternPredicate}).
  *
  * @author Arjen Poutsma
  * @since 5.3
@@ -58,6 +59,10 @@ class ChangePathPatternParserVisitor implements RouterFunctions.Visitor {
 
 	@Override
 	public void resources(Function<ServerRequest, Mono<Resource>> lookupFunction) {
+	}
+
+	@Override
+	public void attributes(Map<String, Object> attributes) {
 	}
 
 	@Override

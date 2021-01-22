@@ -101,6 +101,9 @@ public class ClassReader {
   // DontCheck(MemberName): can't be renamed (for backward binary compatibility).
   public final byte[] b;
 
+  /** The offset in bytes of the ClassFile's access_flags field. */
+  public final int header;
+
   /**
    * A byte array containing the JVMS ClassFile structure to be parsed. <i>The content of this array
    * must not be modified. This field is intended for {@link Attribute} sub classes, and is normally
@@ -147,9 +150,6 @@ public class ClassReader {
    */
   private final int maxStringLength;
 
-  /** The offset in bytes of the ClassFile's access_flags field. */
-  public final int header;
-
   // -----------------------------------------------------------------------------------------------
   // Constructors
   // -----------------------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ public class ClassReader {
     this.b = classFileBuffer;
     // Check the class' major_version. This field is after the magic and minor_version fields, which
     // use 4 and 2 bytes respectively.
-    if (checkClassVersion && readShort(classFileOffset + 6) > Opcodes.V15) {
+    if (checkClassVersion && readShort(classFileOffset + 6) > Opcodes.V17) {
       throw new IllegalArgumentException(
           "Unsupported class file major version " + readShort(classFileOffset + 6));
     }
@@ -415,7 +415,6 @@ public class ClassReader {
    * @param parsingOptions the options to use to parse this class. One or more of {@link
    *     #SKIP_CODE}, {@link #SKIP_DEBUG}, {@link #SKIP_FRAMES} or {@link #EXPAND_FRAMES}.
    */
-  @SuppressWarnings("deprecation")  // for visitPermittedSubtypeExperimental
   public void accept(
       final ClassVisitor classVisitor,
       final Attribute[] attributePrototypes,
@@ -468,8 +467,8 @@ public class ClassReader {
     String nestHostClass = null;
     // - The offset of the NestMembers attribute, or 0.
     int nestMembersOffset = 0;
-    // - The offset of the PermittedSubtypes attribute, or 0
-    int permittedSubtypesOffset = 0;
+    // - The offset of the PermittedSubclasses attribute, or 0
+    int permittedSubclassesOffset = 0;
     // - The offset of the Record attribute, or 0.
     int recordOffset = 0;
     // - The non standard attributes (linked with their {@link Attribute#nextAttribute} field).
@@ -494,8 +493,8 @@ public class ClassReader {
         nestHostClass = readClass(currentAttributeOffset, charBuffer);
       } else if (Constants.NEST_MEMBERS.equals(attributeName)) {
         nestMembersOffset = currentAttributeOffset;
-      } else if (Constants.PERMITTED_SUBTYPES.equals(attributeName)) {
-        permittedSubtypesOffset = currentAttributeOffset;
+      } else if (Constants.PERMITTED_SUBCLASSES.equals(attributeName)) {
+        permittedSubclassesOffset = currentAttributeOffset;
       } else if (Constants.SIGNATURE.equals(attributeName)) {
         signature = readUTF8(currentAttributeOffset, charBuffer);
       } else if (Constants.RUNTIME_VISIBLE_ANNOTATIONS.equals(attributeName)) {
@@ -507,6 +506,9 @@ public class ClassReader {
       } else if (Constants.SYNTHETIC.equals(attributeName)) {
         accessFlags |= Opcodes.ACC_SYNTHETIC;
       } else if (Constants.SOURCE_DEBUG_EXTENSION.equals(attributeName)) {
+        if (attributeLength > classFileBuffer.length - currentAttributeOffset) {
+          throw new IllegalArgumentException();
+        }
         sourceDebugExtension =
             readUtf(currentAttributeOffset, attributeLength, new char[attributeLength]);
       } else if (Constants.RUNTIME_INVISIBLE_ANNOTATIONS.equals(attributeName)) {
@@ -673,14 +675,14 @@ public class ClassReader {
       }
     }
 
-    // Visit the PermittedSubtypes attribute.
-    if (permittedSubtypesOffset != 0) {
-      int numberOfPermittedSubtypes = readUnsignedShort(permittedSubtypesOffset);
-      int currentPermittedSubtypeOffset = permittedSubtypesOffset + 2;
-      while (numberOfPermittedSubtypes-- > 0) {
-        classVisitor.visitPermittedSubtypeExperimental(
-            readClass(currentPermittedSubtypeOffset, charBuffer));
-        currentPermittedSubtypeOffset += 2;
+    // Visit the PermittedSubclasses attribute.
+    if (permittedSubclassesOffset != 0) {
+      int numberOfPermittedSubclasses = readUnsignedShort(permittedSubclassesOffset);
+      int currentPermittedSubclassesOffset = permittedSubclassesOffset + 2;
+      while (numberOfPermittedSubclasses-- > 0) {
+        classVisitor.visitPermittedSubclass(
+            readClass(currentPermittedSubclassesOffset, charBuffer));
+        currentPermittedSubclassesOffset += 2;
       }
     }
 
@@ -1517,6 +1519,9 @@ public class ClassReader {
     final int maxLocals = readUnsignedShort(currentOffset + 2);
     final int codeLength = readInt(currentOffset + 4);
     currentOffset += 8;
+    if (codeLength > classFileBuffer.length - currentOffset) {
+      throw new IllegalArgumentException();
+    }
 
     // Read the bytecode 'code' array to create a label for each referenced instruction.
     final int bytecodeStartOffset = currentOffset;
@@ -2973,7 +2978,7 @@ public class ClassReader {
       // Parse the array_value array.
       while (numElementValuePairs-- > 0) {
         currentOffset =
-            readElementValue(annotationVisitor, currentOffset, /* named = */ null, charBuffer);
+            readElementValue(annotationVisitor, currentOffset, /* elementName= */ null, charBuffer);
       }
     }
     if (annotationVisitor != null) {

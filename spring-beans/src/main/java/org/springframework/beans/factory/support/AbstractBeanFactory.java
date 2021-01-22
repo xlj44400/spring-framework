@@ -75,6 +75,8 @@ import org.springframework.core.NamedThreadLocal;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.log.LogMessage;
+import org.springframework.core.metrics.ApplicationStartup;
+import org.springframework.core.metrics.StartupStep;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
@@ -178,6 +180,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	private final ThreadLocal<Object> prototypesCurrentlyInCreation =
 			new NamedThreadLocal<>("Prototype beans currently in creation");
 
+	/** Application startup metrics. **/
+	private ApplicationStartup applicationStartup = ApplicationStartup.DEFAULT;
 
 	/**
 	 * Create a new AbstractBeanFactory.
@@ -246,7 +250,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			throws BeansException {
 
 		String beanName = transformedBeanName(name);
-		Object bean;
+		Object beanInstance;
 
 		// Eagerly check singleton cache for manually registered singletons.
 		Object sharedInstance = getSingleton(beanName);
@@ -260,7 +264,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					logger.trace("Returning cached instance of singleton bean '" + beanName + "'");
 				}
 			}
-			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
+			beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 
 		else {
@@ -296,7 +300,12 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				markBeanAsCreated(beanName);
 			}
 
+			StartupStep beanCreation = this.applicationStartup.start("spring.beans.instantiate")
+					.tag("beanName", name);
 			try {
+				if (requiredType != null) {
+					beanCreation.tag("beanType", requiredType::toString);
+				}
 				RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
 				checkMergedBeanDefinition(mbd, beanName, args);
 
@@ -333,7 +342,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 							throw ex;
 						}
 					});
-					bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
+					beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
 				}
 
 				else if (mbd.isPrototype()) {
@@ -346,7 +355,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					finally {
 						afterPrototypeCreation(beanName);
 					}
-					bean = getObjectForBeanInstance(prototypeInstance, name, beanName, mbd);
+					beanInstance = getObjectForBeanInstance(prototypeInstance, name, beanName, mbd);
 				}
 
 				else {
@@ -368,7 +377,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 								afterPrototypeCreation(beanName);
 							}
 						});
-						bean = getObjectForBeanInstance(scopedInstance, name, beanName, mbd);
+						beanInstance = getObjectForBeanInstance(scopedInstance, name, beanName, mbd);
 					}
 					catch (IllegalStateException ex) {
 						throw new ScopeNotActiveException(beanName, scopeName, ex);
@@ -376,19 +385,29 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 			}
 			catch (BeansException ex) {
+				beanCreation.tag("exception", ex.getClass().toString());
+				beanCreation.tag("message", String.valueOf(ex.getMessage()));
 				cleanupAfterBeanCreationFailure(beanName);
 				throw ex;
 			}
+			finally {
+				beanCreation.end();
+			}
 		}
 
+		return adaptBeanInstance(name, beanInstance, requiredType);
+	}
+
+	@SuppressWarnings("unchecked")
+	<T> T adaptBeanInstance(String name, Object bean, @Nullable Class<?> requiredType) {
 		// Check if required type matches the type of the actual bean instance.
 		if (requiredType != null && !requiredType.isInstance(bean)) {
 			try {
-				T convertedBean = getTypeConverter().convertIfNecessary(bean, requiredType);
+				Object convertedBean = getTypeConverter().convertIfNecessary(bean, requiredType);
 				if (convertedBean == null) {
 					throw new BeanNotOfRequiredTypeException(name, requiredType, bean.getClass());
 				}
-				return convertedBean;
+				return (T) convertedBean;
 			}
 			catch (TypeMismatchException ex) {
 				if (logger.isTraceEnabled()) {
@@ -1044,6 +1063,17 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		this.securityContextProvider = securityProvider;
 	}
 
+	@Override
+	public void setApplicationStartup(ApplicationStartup applicationStartup) {
+		Assert.notNull(applicationStartup, "applicationStartup should not be null");
+		this.applicationStartup = applicationStartup;
+	}
+
+	@Override
+	public ApplicationStartup getApplicationStartup() {
+		return this.applicationStartup;
+	}
+
 	/**
 	 * Delegate the creation of the access control context to the
 	 * {@link #setSecurityContextProvider SecurityContextProvider}.
@@ -1263,10 +1293,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * @param registry the PropertyEditorRegistry to initialize
 	 */
 	protected void registerCustomEditors(PropertyEditorRegistry registry) {
-		PropertyEditorRegistrySupport registrySupport =
-				(registry instanceof PropertyEditorRegistrySupport ? (PropertyEditorRegistrySupport) registry : null);
-		if (registrySupport != null) {
-			registrySupport.useConfigValueEditors();
+		if (registry instanceof PropertyEditorRegistrySupport) {
+			((PropertyEditorRegistrySupport) registry).useConfigValueEditors();
 		}
 		if (!this.propertyEditorRegistrars.isEmpty()) {
 			for (PropertyEditorRegistrar registrar : this.propertyEditorRegistrars) {
@@ -1380,7 +1408,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 							else {
 								throw new NoSuchBeanDefinitionException(parentBeanName,
 										"Parent name '" + parentBeanName + "' is equal to bean name '" + beanName +
-										"': cannot be resolved without a ConfigurableBeanFactory parent");
+												"': cannot be resolved without a ConfigurableBeanFactory parent");
 							}
 						}
 					}
@@ -1649,21 +1677,22 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	/**
 	 * Determine the bean type for the given FactoryBean definition, as far as possible.
 	 * Only called if there is no singleton instance registered for the target bean
-	 * already. Implementations are only allowed to instantiate the factory bean if
-	 * {@code allowInit} is {@code true}, otherwise they should try to determine the
-	 * result through other means.
+	 * already. The implementation is allowed to instantiate the target factory bean if
+	 * {@code allowInit} is {@code true} and the type cannot be determined another way;
+	 * otherwise it is restricted to introspecting signatures and related metadata.
 	 * <p>If no {@link FactoryBean#OBJECT_TYPE_ATTRIBUTE} if set on the bean definition
 	 * and {@code allowInit} is {@code true}, the default implementation will create
 	 * the FactoryBean via {@code getBean} to call its {@code getObjectType} method.
 	 * Subclasses are encouraged to optimize this, typically by inspecting the generic
-	 * signature of the factory bean class or the factory method that creates it. If
-	 * subclasses do instantiate the FactoryBean, they should consider trying the
-	 * {@code getObjectType} method without fully populating the bean. If this fails, a
-	 * full FactoryBean creation as performed by this implementation should be used as
-	 * fallback.
+	 * signature of the factory bean class or the factory method that creates it.
+	 * If subclasses do instantiate the FactoryBean, they should consider trying the
+	 * {@code getObjectType} method without fully populating the bean. If this fails,
+	 * a full FactoryBean creation as performed by this implementation should be used
+	 * as fallback.
 	 * @param beanName the name of the bean
 	 * @param mbd the merged bean definition for the bean
-	 * @param allowInit if initialization of the FactoryBean is permitted
+	 * @param allowInit if initialization of the FactoryBean is permitted if the type
+	 * cannot be determined another way
 	 * @return the type for the bean if determinable, otherwise {@code ResolvableType.NONE}
 	 * @since 5.2
 	 * @see org.springframework.beans.factory.FactoryBean#getObjectType()
@@ -1679,7 +1708,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			try {
 				FactoryBean<?> factoryBean = doGetBean(FACTORY_BEAN_PREFIX + beanName, FactoryBean.class, null, true);
 				Class<?> objectType = getTypeForFactoryBean(factoryBean);
-				return (objectType != null) ? ResolvableType.forClass(objectType) : ResolvableType.NONE;
+				return (objectType != null ? ResolvableType.forClass(objectType) : ResolvableType.NONE);
 			}
 			catch (BeanCreationException ex) {
 				if (ex.contains(BeanCurrentlyInCreationException.class)) {
@@ -2068,7 +2097,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			super.replaceAll(operator);
 			beanPostProcessorCache = null;
 		}
-	};
+	}
 
 
 	/**

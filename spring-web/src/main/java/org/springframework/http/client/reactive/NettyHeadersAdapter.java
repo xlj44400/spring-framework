@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.springframework.http.client.reactive;
 import java.util.AbstractSet;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +27,7 @@ import java.util.stream.Collectors;
 import io.netty.handler.codec.http.HttpHeaders;
 
 import org.springframework.lang.Nullable;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.MultiValueMap;
 
 /**
@@ -56,7 +56,9 @@ class NettyHeadersAdapter implements MultiValueMap<String, String> {
 
 	@Override
 	public void add(String key, @Nullable String value) {
-		this.headers.add(key, value);
+		if (value != null) {
+			this.headers.add(key, value);
+		}
 	}
 
 	@Override
@@ -71,7 +73,9 @@ class NettyHeadersAdapter implements MultiValueMap<String, String> {
 
 	@Override
 	public void set(String key, @Nullable String value) {
-		this.headers.set(key, value);
+		if (value != null) {
+			this.headers.set(key, value);
+		}
 	}
 
 	@Override
@@ -81,7 +85,7 @@ class NettyHeadersAdapter implements MultiValueMap<String, String> {
 
 	@Override
 	public Map<String, String> toSingleValueMap() {
-		Map<String, String> singleValueMap = new LinkedHashMap<>(this.headers.size());
+		Map<String, String> singleValueMap = CollectionUtils.newLinkedHashMap(this.headers.size());
 		this.headers.entries()
 				.forEach(entry -> {
 					if (!singleValueMap.containsKey(entry.getKey())) {
@@ -153,7 +157,7 @@ class NettyHeadersAdapter implements MultiValueMap<String, String> {
 
 	@Override
 	public Set<String> keySet() {
-		return this.headers.names();
+		return new HeaderNames();
 	}
 
 	@Override
@@ -223,6 +227,54 @@ class NettyHeadersAdapter implements MultiValueMap<String, String> {
 			List<String> previousValues = headers.getAll(this.key);
 			headers.set(this.key, value);
 			return previousValues;
+		}
+	}
+
+
+	private class HeaderNames extends AbstractSet<String> {
+
+		@Override
+		public Iterator<String> iterator() {
+			return new HeaderNamesIterator(headers.names().iterator());
+		}
+
+		@Override
+		public int size() {
+			return headers.names().size();
+		}
+	}
+
+	private final class HeaderNamesIterator implements Iterator<String> {
+
+		private final Iterator<String> iterator;
+
+		@Nullable
+		private String currentName;
+
+		private HeaderNamesIterator(Iterator<String> iterator) {
+			this.iterator = iterator;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return this.iterator.hasNext();
+		}
+
+		@Override
+		public String next() {
+			this.currentName = this.iterator.next();
+			return this.currentName;
+		}
+
+		@Override
+		public void remove() {
+			if (this.currentName == null) {
+				throw new IllegalStateException("No current Header in iterator");
+			}
+			if (!headers.contains(this.currentName)) {
+				throw new IllegalStateException("Header not present: " + this.currentName);
+			}
+			headers.remove(this.currentName);
 		}
 	}
 
