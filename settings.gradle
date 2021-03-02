@@ -57,8 +57,10 @@ settings.gradle.projectsLoaded {
 			buildScanPublished { scan ->
 				if (buildDir.exists()) {
 					new File(buildDir, "build-scan-uri.txt").text = "${scan.buildScanUri}\n"
-				} 
+				}
 			}
 		}
 	}
 }
+include 'spring-source-study'
+
